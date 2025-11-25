@@ -3,14 +3,11 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
 
 	"github.com/deicod/convex-operator/api/v1alpha1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // InstanceService defines CRUD interactions for ConvexInstances.
@@ -43,7 +40,7 @@ func (h *InstanceHandler) handleList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !h.namespaceAllowed(namespace) {
+	if !namespaceAllowed(h.AllowedNamespaces, namespace) {
 		writeError(w, http.StatusForbidden, "namespace not allowed")
 		return
 	}
@@ -88,7 +85,7 @@ func (h *InstanceHandler) handleGet(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "not found")
 		return
 	}
-	if !h.namespaceAllowed(ns) {
+	if !namespaceAllowed(h.AllowedNamespaces, ns) {
 		writeError(w, http.StatusForbidden, "namespace not allowed")
 		return
 	}
@@ -112,7 +109,7 @@ func (h *InstanceHandler) handleCreate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	if !h.namespaceAllowed(req.Metadata.Namespace) {
+	if !namespaceAllowed(h.AllowedNamespaces, req.Metadata.Namespace) {
 		writeError(w, http.StatusForbidden, "namespace not allowed")
 		return
 	}
@@ -144,7 +141,7 @@ func (h *InstanceHandler) handlePut(w http.ResponseWriter, r *http.Request) {
 	req.Metadata.Name = name
 	req.Metadata.Namespace = ns
 
-	if !h.namespaceAllowed(ns) {
+	if !namespaceAllowed(h.AllowedNamespaces, ns) {
 		writeError(w, http.StatusForbidden, "namespace not allowed")
 		return
 	}
@@ -175,7 +172,7 @@ func (h *InstanceHandler) handlePatch(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "not found")
 		return
 	}
-	if !h.namespaceAllowed(ns) {
+	if !namespaceAllowed(h.AllowedNamespaces, ns) {
 		writeError(w, http.StatusForbidden, "namespace not allowed")
 		return
 	}
@@ -222,7 +219,7 @@ func (h *InstanceHandler) handleDelete(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "not found")
 		return
 	}
-	if !h.namespaceAllowed(ns) {
+	if !namespaceAllowed(h.AllowedNamespaces, ns) {
 		writeError(w, http.StatusForbidden, "namespace not allowed")
 		return
 	}
@@ -233,21 +230,6 @@ func (h *InstanceHandler) handleDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
-}
-
-func (h *InstanceHandler) namespaceAllowed(ns string) bool {
-	if len(h.AllowedNamespaces) == 0 {
-		return true
-	}
-	if ns == "" {
-		return false
-	}
-	for _, allowed := range h.AllowedNamespaces {
-		if ns == allowed {
-			return true
-		}
-	}
-	return false
 }
 
 func isCollectionPath(path string) bool {
@@ -299,31 +281,4 @@ func writeInstances(w http.ResponseWriter, items []v1alpha1.ConvexInstance) {
 		resp.Items = append(resp.Items, FromConvexInstance(item))
 	}
 	writeJSON(w, http.StatusOK, resp)
-}
-
-func writeKubeError(w http.ResponseWriter, err error) {
-	if apierrors.IsNotFound(err) {
-		writeError(w, http.StatusNotFound, "not found")
-		return
-	}
-	if apierrors.IsAlreadyExists(err) {
-		writeError(w, http.StatusConflict, "already exists")
-		return
-	}
-	if apierrors.IsForbidden(err) {
-		writeError(w, http.StatusForbidden, "forbidden")
-		return
-	}
-	if apierrors.IsConflict(err) {
-		writeError(w, http.StatusConflict, "conflict")
-		return
-	}
-	if statusErr, ok := err.(*apierrors.StatusError); ok {
-		switch statusErr.ErrStatus.Reason {
-		case metav1.StatusReasonInvalid, metav1.StatusReasonBadRequest:
-			writeError(w, http.StatusBadRequest, statusErr.Error())
-			return
-		}
-	}
-	writeError(w, http.StatusInternalServerError, fmt.Sprintf("internal error: %v", err))
 }

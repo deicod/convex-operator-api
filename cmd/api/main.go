@@ -30,7 +30,11 @@ func main() {
 	}
 
 	instanceStore := kube.InstanceStore{Client: kubeClient}
-	mux := httpapi.NewMux(readyChecker, instanceStore, cfg.AllowedNamespaces)
+	statusService := httpapi.StatusServiceAdapter{Reader: kube.StatusReader{Client: kubeClient}}
+	eventsService := httpapi.EventsServiceAdapter{Reader: kube.EventsReader{Client: kubeClient}}
+	upgradeService := httpapi.UpgradeServiceAdapter{Updater: kube.UpgradeSpecUpdater{Client: kubeClient}}
+
+	mux := httpapi.NewMux(readyChecker, instanceStore, statusService, eventsService, upgradeService, cfg.AllowedNamespaces)
 
 	server := &http.Server{
 		Addr:              cfg.ListenAddress,
