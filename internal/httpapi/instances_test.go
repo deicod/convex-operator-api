@@ -39,6 +39,35 @@ func (s stubInstanceService) DeleteConvexInstance(ctx context.Context, namespace
 	return s.deleteFn(ctx, namespace, name)
 }
 
+type noopStatusService struct{}
+
+func (noopStatusService) GetStatus(ctx context.Context, namespace, name string) (*InstanceResponse, error) {
+	_ = ctx
+	_ = namespace
+	_ = name
+	return nil, nil
+}
+
+type noopEventsService struct{}
+
+func (noopEventsService) ListEvents(ctx context.Context, namespace, name string) ([]EventResponse, error) {
+	_ = ctx
+	_ = namespace
+	_ = name
+	return nil, nil
+}
+
+type noopUpgradeService struct{}
+
+func (noopUpgradeService) ApplyUpgrade(ctx context.Context, namespace, name, targetVersion, strategy string) (*v1alpha1.ConvexInstance, error) {
+	_ = ctx
+	_ = namespace
+	_ = name
+	_ = targetVersion
+	_ = strategy
+	return &v1alpha1.ConvexInstance{}, nil
+}
+
 func makeConvexInstance(name, ns string) v1alpha1.ConvexInstance {
 	return v1alpha1.ConvexInstance{
 		ObjectMeta: metav1.ObjectMeta{
@@ -64,7 +93,7 @@ func TestListInstances(t *testing.T) {
 		},
 	}
 
-	mux := NewMux(nil, svc, []string{"ns1"})
+	mux := NewMux(nil, svc, noopStatusService{}, noopEventsService{}, noopUpgradeService{}, []string{"ns1"})
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances?namespace=ns1", nil)
 	rec := httptest.NewRecorder()
 
@@ -92,7 +121,7 @@ func TestListInstancesRequiresNamespaceWhenRestricted(t *testing.T) {
 		},
 	}
 
-	mux := NewMux(nil, svc, []string{"ns1"})
+	mux := NewMux(nil, svc, noopStatusService{}, noopEventsService{}, noopUpgradeService{}, []string{"ns1"})
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances", nil)
 	rec := httptest.NewRecorder()
 
@@ -121,7 +150,7 @@ func TestGetInstance(t *testing.T) {
 		},
 	}
 
-	mux := NewMux(nil, svc, nil)
+	mux := NewMux(nil, svc, noopStatusService{}, noopEventsService{}, noopUpgradeService{}, nil)
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances/ns1/demo", nil)
 	rec := httptest.NewRecorder()
 
@@ -144,7 +173,7 @@ func TestCreateInstance(t *testing.T) {
 		"metadata": {"name": "demo", "namespace": "ns1"},
 		"spec": {"environment": "dev", "version": "1.0.0", "backend": {"db": {"engine": "postgres"}}, "networking": {"host": "example.com"}}
 	}`
-	mux := NewMux(nil, svc, nil)
+	mux := NewMux(nil, svc, noopStatusService{}, noopEventsService{}, noopUpgradeService{}, nil)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/instances", bytes.NewBufferString(reqBody))
 	rec := httptest.NewRecorder()
 
@@ -165,7 +194,7 @@ func TestPostToDetailPathIsRejected(t *testing.T) {
 		},
 	}
 
-	mux := NewMux(nil, svc, nil)
+	mux := NewMux(nil, svc, noopStatusService{}, noopEventsService{}, noopUpgradeService{}, nil)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/instances/ns1/demo", bytes.NewBufferString(`{}`))
 	rec := httptest.NewRecorder()
 
@@ -194,7 +223,7 @@ func TestPutInstanceReplacesSpec(t *testing.T) {
 		"metadata": {"name": "ignored", "namespace": "ignored"},
 		"spec": {"environment": "dev", "version": "2.0.0", "backend": {"db": {"engine": "postgres"}}, "networking": {"host": "example.com"}}
 	}`
-	mux := NewMux(nil, svc, nil)
+	mux := NewMux(nil, svc, noopStatusService{}, noopEventsService{}, noopUpgradeService{}, nil)
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/instances/ns1/demo", bytes.NewBufferString(body))
 	rec := httptest.NewRecorder()
 
@@ -220,7 +249,7 @@ func TestPatchInstance(t *testing.T) {
 	}
 
 	body := `{"version":"2.0.0"}`
-	mux := NewMux(nil, svc, nil)
+	mux := NewMux(nil, svc, noopStatusService{}, noopEventsService{}, noopUpgradeService{}, nil)
 	req := httptest.NewRequest(http.MethodPatch, "/api/v1/instances/ns1/demo", bytes.NewBufferString(body))
 	rec := httptest.NewRecorder()
 
@@ -238,7 +267,7 @@ func TestDeleteInstance(t *testing.T) {
 			return nil
 		},
 	}
-	mux := NewMux(nil, svc, []string{"ns1"})
+	mux := NewMux(nil, svc, noopStatusService{}, noopEventsService{}, noopUpgradeService{}, []string{"ns1"})
 	req := httptest.NewRequest(http.MethodDelete, "/api/v1/instances/ns1/demo", nil)
 	rec := httptest.NewRecorder()
 
@@ -257,7 +286,7 @@ func TestNamespaceNotAllowed(t *testing.T) {
 			return nil, nil
 		},
 	}
-	mux := NewMux(nil, svc, []string{"allowed"})
+	mux := NewMux(nil, svc, noopStatusService{}, noopEventsService{}, noopUpgradeService{}, []string{"allowed"})
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances/denied/demo", nil)
 	rec := httptest.NewRecorder()
 
@@ -281,7 +310,7 @@ func TestNotFoundMapping(t *testing.T) {
 			return nil, apierrors.NewNotFound(schema.GroupResource{Group: "convex.icod.de", Resource: "convexinstances"}, "missing")
 		},
 	}
-	mux := NewMux(nil, svc, nil)
+	mux := NewMux(nil, svc, noopStatusService{}, noopEventsService{}, noopUpgradeService{}, nil)
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances/ns1/missing", nil)
 	rec := httptest.NewRecorder()
 
@@ -295,7 +324,7 @@ func TestBadJSONReturns400(t *testing.T) {
 	svc := stubInstanceService{
 		createFn: func(_ context.Context, _ *v1alpha1.ConvexInstance) error { return nil },
 	}
-	mux := NewMux(nil, svc, nil)
+	mux := NewMux(nil, svc, noopStatusService{}, noopEventsService{}, noopUpgradeService{}, nil)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/instances", bytes.NewBufferString("{"))
 	rec := httptest.NewRecorder()
 
@@ -311,7 +340,7 @@ func TestServiceErrorMapsTo500(t *testing.T) {
 			return nil, errors.New("boom")
 		},
 	}
-	mux := NewMux(nil, svc, nil)
+	mux := NewMux(nil, svc, noopStatusService{}, noopEventsService{}, noopUpgradeService{}, nil)
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances", nil)
 	rec := httptest.NewRecorder()
 
@@ -331,7 +360,7 @@ func TestConflictMapsTo409(t *testing.T) {
 			return &obj, nil
 		},
 	}
-	mux := NewMux(nil, svc, nil)
+	mux := NewMux(nil, svc, noopStatusService{}, noopEventsService{}, noopUpgradeService{}, nil)
 	body := `{
 		"metadata": {"name": "demo", "namespace": "ns1"},
 		"spec": {"environment": "dev", "version": "1.0.0", "backend": {"db": {"engine": "postgres"}}, "networking": {"host": "example.com"}}
