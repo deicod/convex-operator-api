@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -98,7 +99,9 @@ func ApplySpecPatch(spec v1alpha1.ConvexInstanceSpec, patchBytes []byte) (v1alph
 		return v1alpha1.ConvexInstanceSpec{}, err
 	}
 	var out v1alpha1.ConvexInstanceSpec
-	if err := json.Unmarshal(patched, &out); err != nil {
+	dec := json.NewDecoder(bytes.NewReader(patched))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&out); err != nil {
 		return v1alpha1.ConvexInstanceSpec{}, err
 	}
 	return out, nil

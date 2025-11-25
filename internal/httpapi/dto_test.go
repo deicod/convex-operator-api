@@ -165,3 +165,17 @@ func TestApplySpecPatchInvalidMerge(t *testing.T) {
 		t.Fatalf("expected merge error to propagate")
 	}
 }
+
+func TestApplySpecPatchRejectsUnknownFields(t *testing.T) {
+	orig := v1alpha1.ConvexInstanceSpec{
+		Environment: "dev",
+		Version:     "1.0.0",
+		Backend:     v1alpha1.BackendSpec{DB: v1alpha1.BackendDatabaseSpec{Engine: "postgres"}},
+		Networking:  v1alpha1.NetworkingSpec{Host: "example.com"},
+	}
+	patch := `{"environmant":"prod"}`
+
+	if _, err := ApplySpecPatch(orig, []byte(patch)); err == nil {
+		t.Fatalf("expected unknown field error")
+	}
+}
