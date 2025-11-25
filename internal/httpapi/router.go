@@ -12,6 +12,7 @@ func NewMux(ready ReadyChecker, instances InstanceService, allowed []string) *ht
 	mux.Handle("GET /api/v1/instances", instancesHandler)
 	mux.Handle("GET /api/v1/instances/", instancesHandler)
 	mux.Handle("POST /api/v1/instances", instancesHandler)
+	mux.Handle("POST /api/v1/instances/", instancesHandler)
 	mux.Handle("PUT /api/v1/instances/", instancesHandler)
 	mux.Handle("PATCH /api/v1/instances/", instancesHandler)
 	mux.Handle("DELETE /api/v1/instances/", instancesHandler)
