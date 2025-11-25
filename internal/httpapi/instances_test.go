@@ -302,3 +302,27 @@ func TestServiceErrorMapsTo500(t *testing.T) {
 		t.Fatalf("expected 500, got %d", rec.Code)
 	}
 }
+
+func TestConflictMapsTo409(t *testing.T) {
+	svc := stubInstanceService{
+		updateFn: func(_ context.Context, obj *v1alpha1.ConvexInstance) error {
+			return apierrors.NewConflict(schema.GroupResource{Group: "convex.icod.de", Resource: "convexinstances"}, obj.Name, errors.New("conflict"))
+		},
+		getFn: func(_ context.Context, _ string, _ string) (*v1alpha1.ConvexInstance, error) {
+			obj := makeConvexInstance("demo", "ns1")
+			return &obj, nil
+		},
+	}
+	handler := NewInstanceHandler(svc, nil)
+	body := `{
+		"metadata": {"name": "demo", "namespace": "ns1"},
+		"spec": {"environment": "dev", "version": "1.0.0", "backend": {"db": {"engine": "postgres"}}, "networking": {"host": "example.com"}}
+	}`
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/instances/ns1/demo", bytes.NewBufferString(body))
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("expected 409, got %d", rec.Code)
+	}
+}

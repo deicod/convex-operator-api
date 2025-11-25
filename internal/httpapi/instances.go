@@ -326,6 +326,10 @@ func writeKubeError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
+	if apierrors.IsConflict(err) {
+		writeError(w, http.StatusConflict, "conflict")
+		return
+	}
 	if statusErr, ok := err.(*apierrors.StatusError); ok {
 		switch statusErr.ErrStatus.Reason {
 		case metav1.StatusReasonInvalid, metav1.StatusReasonBadRequest:
