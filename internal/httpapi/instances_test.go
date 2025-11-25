@@ -82,6 +82,24 @@ func TestListInstances(t *testing.T) {
 	}
 }
 
+func TestListInstancesRequiresNamespaceWhenRestricted(t *testing.T) {
+	svc := stubInstanceService{
+		listFn: func(_ context.Context, _ string) ([]v1alpha1.ConvexInstance, error) {
+			t.Fatalf("list should not be invoked when namespace missing")
+			return nil, nil
+		},
+	}
+
+	handler := NewInstanceHandler(svc, []string{"ns1"})
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances", nil)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d", rec.Code)
+	}
+}
+
 func TestGetInstance(t *testing.T) {
 	svc := stubInstanceService{
 		getFn: func(_ context.Context, namespace, name string) (*v1alpha1.ConvexInstance, error) {

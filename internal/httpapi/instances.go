@@ -226,8 +226,11 @@ func (h *InstanceHandler) handleDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *InstanceHandler) namespaceAllowed(ns string) bool {
-	if len(h.AllowedNamespaces) == 0 || ns == "" {
+	if len(h.AllowedNamespaces) == 0 {
 		return true
+	}
+	if ns == "" {
+		return false
 	}
 	for _, allowed := range h.AllowedNamespaces {
 		if ns == allowed {
