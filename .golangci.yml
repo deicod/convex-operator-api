@@ -1,0 +1,15 @@
+version: 2
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - revive
+    - misspell
+    - nilerr
+    - unconvert
+
+issues:
+  max-same-issues: 0
+  max-issues-per-linter: 0

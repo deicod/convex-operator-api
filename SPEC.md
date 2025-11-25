@@ -241,47 +241,47 @@ All responses are JSON. Errors include at least `code` and `message` fields.
 
 Goal: Establish testing and static analysis as first-class citizens before feature work.
 
-- [ ] Initialize or update Go module layout for the API backend, ensuring it compiles and integrates cleanly with the existing `convex-operator` repo.
-- [ ] Add `go test ./...` as the primary test command and ensure it passes with an empty or trivial implementation.
-- [ ] Integrate `go vet`:
-  - [ ] Add a `make vet` target or equivalent script.
-  - [ ] Ensure `go vet ./...` runs cleanly on the existing codebase.
-- [ ] Integrate `golangci-lint` early:
-  - [ ] Add a configuration file (example value: `.golangci.yml`) with a reasonable set of linters.
-  - [ ] Add a `make lint` target that runs `golangci-lint run ./...`.
-  - [ ] Fix or explicitly suppress any initial lint findings before adding new code.
-- [ ] Wire basic CI (example values: GitHub Actions, Gitea CI) to run, at minimum:
-  - [ ] `go test ./...`
-  - [ ] `go vet ./...`
-  - [ ] `golangci-lint run ./...`
-- [ ] Document the TDD workflow for this service:
-  - [ ] Encourage writing or updating tests before implementing handlers and helpers.
-  - [ ] Make tests and linting mandatory gates for merges (protected branch rules if available).
+- [x] Initialize or update Go module layout for the API backend, ensuring it compiles and integrates cleanly with the existing `convex-operator` repo.
+- [x] Add `go test ./...` as the primary test command and ensure it passes with an empty or trivial implementation.
+- [x] Integrate `go vet`:
+  - [x] Add a `make vet` target or equivalent script.
+  - [x] Ensure `go vet ./...` runs cleanly on the existing codebase.
+- [x] Integrate `golangci-lint` early:
+  - [x] Add a configuration file (example value: `.golangci.yml`) with a reasonable set of linters.
+  - [x] Add a `make lint` target that runs `golangci-lint run ./...`.
+  - [x] Fix or explicitly suppress any initial lint findings before adding new code.
+- [x] Wire basic CI (example values: GitHub Actions, Gitea CI) to run, at minimum:
+  - [x] `go test ./...`
+  - [x] `go vet ./...`
+  - [x] `golangci-lint run ./...`
+- [x] Document the TDD workflow for this service:
+  - [x] Encourage writing or updating tests before implementing handlers and helpers.
+  - [x] Make tests and linting mandatory gates for merges (protected branch rules if available).
 
 ### Milestone 1 – Skeleton, config, and Kubernetes client
 
 Goal: A running HTTP server with `http.ServeMux`, config parsing, and a live Kubernetes client in both modes, implemented test-first.
 
-- [ ] Write tests for configuration loading:
-  - [ ] Verify precedence of defaults, env, and flags.
-  - [ ] Verify error behavior when `Mode=out-of-cluster` and kubeconfig is missing.
-- [ ] Implement `internal/config`:
-  - [ ] Define `Config` struct for listen address, mode, kubeconfig path, kube context, and allowed namespaces.
-  - [ ] Implement parsing from env and flags to match the tests.
-- [ ] Write tests for Kubernetes client initialization behavior (using stubs/fakes where appropriate):
-  - [ ] Ensure in-cluster mode selects `InClusterConfig` path.
-  - [ ] Ensure out-of-cluster mode uses `clientcmd` with the given kubeconfig path.
-- [ ] Implement `internal/kube` initialization according to tests:
-  - [ ] In `in-cluster` mode, use `InClusterConfig` / `ctrl.GetConfigOrDie()` and create a controller-runtime client.
-  - [ ] In `out-of-cluster` mode, use `clientcmd.BuildConfigFromFlags` with the configured kubeconfig path and optional context.
-  - [ ] Log which mode and context are being used at startup.
-- [ ] Write tests for basic HTTP routing:
-  - [ ] Ensure `/healthz` and `/readyz` are wired up and return expected status codes given mock dependencies.
-- [ ] Implement `cmd/api/main.go`:
-  - [ ] Initialize config and Kubernetes client.
-  - [ ] Initialize `http.ServeMux` and register `/healthz` and `/readyz` handlers.
-  - [ ] Register placeholder handlers for `/api/v1/instances` and `/api/v1/instances/` which can return `501 Not Implemented` initially.
-  - [ ] Wrap the mux with logging middleware and start the HTTP server.
+- [x] Write tests for configuration loading:
+  - [x] Verify precedence of defaults, env, and flags.
+  - [x] Verify error behavior when `Mode=out-of-cluster` and kubeconfig is missing.
+- [x] Implement `internal/config`:
+  - [x] Define `Config` struct for listen address, mode, kubeconfig path, kube context, and allowed namespaces.
+  - [x] Implement parsing from env and flags to match the tests.
+- [x] Write tests for Kubernetes client initialization behavior (using stubs/fakes where appropriate):
+  - [x] Ensure in-cluster mode selects `InClusterConfig` path.
+  - [x] Ensure out-of-cluster mode uses `clientcmd` with the given kubeconfig path.
+- [x] Implement `internal/kube` initialization according to tests:
+  - [x] In `in-cluster` mode, use `InClusterConfig` / `ctrl.GetConfigOrDie()` and create a controller-runtime client.
+  - [x] In `out-of-cluster` mode, use `clientcmd.BuildConfigFromFlags` with the configured kubeconfig path and optional context.
+  - [x] Log which mode and context are being used at startup.
+- [x] Write tests for basic HTTP routing:
+  - [x] Ensure `/healthz` and `/readyz` are wired up and return expected status codes given mock dependencies.
+- [x] Implement `cmd/api/main.go`:
+  - [x] Initialize config and Kubernetes client.
+  - [x] Initialize `http.ServeMux` and register `/healthz` and `/readyz` handlers.
+  - [x] Register placeholder handlers for `/api/v1/instances` and `/api/v1/instances/` which can return `501 Not Implemented` initially.
+  - [x] Wrap the mux with logging middleware and start the HTTP server.
 
 ### Milestone 2 – ConvexInstance CRUD
 
