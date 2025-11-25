@@ -37,3 +37,62 @@ func TestStatusReaderGetStatus(t *testing.T) {
 		t.Fatalf("expected status phase Ready, got %s", got.Status.Phase)
 	}
 }
+
+func TestPodReadinessCounter(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+
+	readyPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ready",
+			Namespace: "ns1",
+			Labels: map[string]string{
+				"app.kubernetes.io/instance": "demo",
+			},
+		},
+		Status: corev1.PodStatus{
+			Conditions: []corev1.PodCondition{{
+				Type:   corev1.PodReady,
+				Status: corev1.ConditionTrue,
+			}},
+		},
+	}
+	notReadyPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "not-ready",
+			Namespace: "ns1",
+			Labels: map[string]string{
+				"app.kubernetes.io/instance": "demo",
+			},
+		},
+		Status: corev1.PodStatus{
+			Conditions: []corev1.PodCondition{{
+				Type:   corev1.PodReady,
+				Status: corev1.ConditionFalse,
+			}},
+		},
+	}
+	otherInstancePod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "other",
+			Namespace: "ns1",
+			Labels: map[string]string{
+				"app.kubernetes.io/instance": "someone-else",
+			},
+		},
+	}
+
+	cli := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(readyPod, notReadyPod, otherInstancePod).
+		Build()
+
+	counter := PodReadinessCounter{Client: cli}
+	ready, total, err := counter.CountReadyPods(context.Background(), "ns1", "demo")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ready != 1 || total != 2 {
+		t.Fatalf("unexpected counts ready=%d total=%d", ready, total)
+	}
+}

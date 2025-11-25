@@ -20,7 +20,7 @@ import (
 type Factory struct {
 	inClusterConfig    func() (*rest.Config, error)
 	outOfClusterConfig func(path, kubeContext string) (*rest.Config, error)
-	newClient          func(cfg *rest.Config, opts client.Options) (client.Client, error)
+	newClient          func(cfg *rest.Config, opts client.Options) (client.WithWatch, error)
 }
 
 // NewFactory returns a Factory wired to real Kubernetes configuration helpers.
@@ -28,7 +28,7 @@ func NewFactory() Factory {
 	return Factory{
 		inClusterConfig:    rest.InClusterConfig,
 		outOfClusterConfig: loadOutOfClusterConfig,
-		newClient:          client.New,
+		newClient:          client.NewWithWatch,
 	}
 }
 
@@ -44,7 +44,7 @@ func (f Factory) restConfig(cfg config.Config) (*rest.Config, error) {
 }
 
 // Client builds a controller-runtime client based on the provided config and also returns the rest.Config used.
-func (f Factory) Client(cfg config.Config) (client.Client, *rest.Config, error) {
+func (f Factory) Client(cfg config.Config) (client.WithWatch, *rest.Config, error) {
 	restCfg, err := f.restConfig(cfg)
 	if err != nil {
 		return nil, nil, err

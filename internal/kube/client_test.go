@@ -31,7 +31,7 @@ func TestFactoryUsesInClusterConfig(t *testing.T) {
 			outOfClusterCalled = true
 			return nil, nil
 		},
-		newClient: func(cfg *rest.Config, opts client.Options) (client.Client, error) {
+		newClient: func(cfg *rest.Config, opts client.Options) (client.WithWatch, error) {
 			newClientCalled = true
 			if cfg.Host != "in-cluster" {
 				t.Fatalf("expected in-cluster config, got %q", cfg.Host)
@@ -77,7 +77,7 @@ func TestFactoryUsesOutOfClusterConfig(t *testing.T) {
 			receivedContext = kubeContext
 			return &rest.Config{Host: "out-of-cluster"}, nil
 		},
-		newClient: func(cfg *rest.Config, opts client.Options) (client.Client, error) {
+		newClient: func(cfg *rest.Config, opts client.Options) (client.WithWatch, error) {
 			if cfg.Host != "out-of-cluster" {
 				t.Fatalf("expected out-of-cluster config, got %q", cfg.Host)
 			}
@@ -115,7 +115,7 @@ func TestFactoryPropagatesConfigError(t *testing.T) {
 		outOfClusterConfig: func(_, _ string) (*rest.Config, error) {
 			return nil, nil
 		},
-		newClient: func(cfg *rest.Config, opts client.Options) (client.Client, error) {
+		newClient: func(cfg *rest.Config, opts client.Options) (client.WithWatch, error) {
 			_ = cfg
 			_ = opts
 			return nil, nil

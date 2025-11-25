@@ -29,11 +29,18 @@ type InstanceResponse struct {
 	Metadata ObjectMeta                    `json:"metadata"`
 	Spec     v1alpha1.ConvexInstanceSpec   `json:"spec"`
 	Status   v1alpha1.ConvexInstanceStatus `json:"status,omitempty"`
+	Metrics  *StatusMetrics                `json:"metrics,omitempty"`
 }
 
 // InstancesListResponse wraps a list response.
 type InstancesListResponse struct {
 	Items []InstanceResponse `json:"items"`
+}
+
+// StatusMetrics holds derived status information not persisted in the CR.
+type StatusMetrics struct {
+	ReadyPods int `json:"readyPods,omitempty"`
+	TotalPods int `json:"totalPods,omitempty"`
 }
 
 // Validate checks for required fields and known enums.
