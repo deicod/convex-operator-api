@@ -23,15 +23,19 @@ func TestParseDefaults(t *testing.T) {
 	if len(cfg.AllowedNamespaces) != 0 {
 		t.Fatalf("expected no allowed namespaces, got %v", cfg.AllowedNamespaces)
 	}
+	if cfg.AuthToken != "" {
+		t.Fatalf("expected empty auth token by default")
+	}
 }
 
 func TestParseEnvironmentOverridesDefaults(t *testing.T) {
 	env := map[string]string{
-		"LISTEN_ADDRESS":     "127.0.0.1:9999",
-		"MODE":               ModeOutOfCluster,
-		"KUBECONFIG":         "/tmp/kubeconfig",
-		"KUBECONTEXT":        "dev",
-		"ALLOWED_NAMESPACES": "a,b , c",
+		"LISTEN_ADDRESS":        "127.0.0.1:9999",
+		"MODE":                  ModeOutOfCluster,
+		"KUBECONFIG":            "/tmp/kubeconfig",
+		"KUBECONTEXT":           "dev",
+		"ALLOWED_NAMESPACES":    "a,b , c",
+		"CONVEX_API_AUTH_TOKEN": "secret",
 	}
 
 	cfg, err := Parse(nil, mapLookup(env))
@@ -55,14 +59,18 @@ func TestParseEnvironmentOverridesDefaults(t *testing.T) {
 	if !reflect.DeepEqual(cfg.AllowedNamespaces, expectedNS) {
 		t.Fatalf("unexpected allowed namespaces: %v", cfg.AllowedNamespaces)
 	}
+	if cfg.AuthToken != "secret" {
+		t.Fatalf("expected auth token from env")
+	}
 }
 
 func TestFlagsOverrideEnvironment(t *testing.T) {
 	env := map[string]string{
-		"LISTEN_ADDRESS":     ":1111",
-		"MODE":               ModeInCluster,
-		"KUBECONFIG":         "/env/kubeconfig",
-		"ALLOWED_NAMESPACES": "ns-from-env",
+		"LISTEN_ADDRESS":        ":1111",
+		"MODE":                  ModeInCluster,
+		"KUBECONFIG":            "/env/kubeconfig",
+		"ALLOWED_NAMESPACES":    "ns-from-env",
+		"CONVEX_API_AUTH_TOKEN": "env-secret",
 	}
 
 	args := []string{
@@ -71,6 +79,7 @@ func TestFlagsOverrideEnvironment(t *testing.T) {
 		"-kubeconfig=/flag/kubeconfig",
 		"-kubecontext=prod",
 		"-allowed-namespaces=ns-flag1,ns-flag2",
+		"-auth-token=flag-secret",
 	}
 
 	cfg, err := Parse(args, mapLookup(env))
@@ -93,6 +102,9 @@ func TestFlagsOverrideEnvironment(t *testing.T) {
 	expectedNS := []string{"ns-flag1", "ns-flag2"}
 	if !reflect.DeepEqual(cfg.AllowedNamespaces, expectedNS) {
 		t.Fatalf("unexpected allowed namespaces: %v", cfg.AllowedNamespaces)
+	}
+	if cfg.AuthToken != "flag-secret" {
+		t.Fatalf("expected auth token from flag, got %q", cfg.AuthToken)
 	}
 }
 

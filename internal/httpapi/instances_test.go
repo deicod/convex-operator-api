@@ -5,8 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/deicod/convex-operator/api/v1alpha1"
@@ -183,6 +185,31 @@ func TestCreateInstance(t *testing.T) {
 	}
 	if created == nil || created.Name != "demo" || created.Namespace != "ns1" {
 		t.Fatalf("expected object to be created, got %+v", created)
+	}
+}
+
+func TestCreateInstanceBodyTooLarge(t *testing.T) {
+	origLimit := maxRequestBodyBytes
+	maxRequestBodyBytes = 64
+	defer func() { maxRequestBodyBytes = origLimit }()
+
+	svc := stubInstanceService{
+		createFn: func(_ context.Context, obj *v1alpha1.ConvexInstance) error {
+			t.Fatalf("should not be called: %v", obj)
+			return nil
+		},
+	}
+	mux := NewMux(nil, svc, noopStatusService{}, noopEventsService{}, noopUpgradeService{}, noopWatch{}, nil)
+	payload := fmt.Sprintf(`{
+		"metadata": {"name": "demo", "namespace": "ns1"},
+		"spec": {"environment": "dev", "version": "1.0.0", "backend": {"db": {"engine": "postgres"}}, "networking": {"host": "%s"}}
+	}`, strings.Repeat("a", 80))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/instances", bytes.NewReader([]byte(payload)))
+	rec := httptest.NewRecorder()
+
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("expected 413, got %d", rec.Code)
 	}
 }
 

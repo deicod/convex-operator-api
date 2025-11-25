@@ -3,8 +3,10 @@ package httpapi
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/deicod/convex-operator/api/v1alpha1"
@@ -83,5 +85,29 @@ func TestUpgradeHandlerRejectsUnknownFields(t *testing.T) {
 	handler.ServeHTTP(rec, req)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestUpgradeHandlerBodyTooLarge(t *testing.T) {
+	origLimit := maxRequestBodyBytes
+	maxRequestBodyBytes = 32
+	defer func() { maxRequestBodyBytes = origLimit }()
+
+	handler := UpgradeHandler{
+		Service: stubUpgradeService{
+			applyFn: func(_ context.Context, _, _, _, _ string) (*v1alpha1.ConvexInstance, error) {
+				t.Fatalf("should not be called")
+				return nil, nil
+			},
+		},
+	}
+
+	payload := fmt.Sprintf(`{"targetVersion":"%s"}`, strings.Repeat("v", 64))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/instances/ns1/demo/upgrade", bytes.NewReader([]byte(payload)))
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("expected 413, got %d", rec.Code)
 	}
 }

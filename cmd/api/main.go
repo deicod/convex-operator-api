@@ -40,9 +40,16 @@ func main() {
 
 	mux := httpapi.NewMux(readyChecker, instanceStore, statusService, eventsService, upgradeService, instanceWatcher, cfg.AllowedNamespaces)
 
+	protected := httpapi.AuthMiddleware{Token: cfg.AuthToken}.Wrap(mux)
+	handler := httpapi.HealthBypassMiddleware{
+		Underlying:  mux,
+		Protected:   protected,
+		HealthPaths: []string{"/healthz", "/readyz"},
+	}
+
 	server := &http.Server{
 		Addr:              cfg.ListenAddress,
-		Handler:           loggingMiddleware(mux),
+		Handler:           loggingMiddleware(handler),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,
