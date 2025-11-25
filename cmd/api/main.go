@@ -28,7 +28,9 @@ func main() {
 		Client:     kubeClient,
 		RestConfig: restCfg,
 	}
-	mux := httpapi.NewMux(readyChecker)
+
+	instanceStore := kube.InstanceStore{Client: kubeClient}
+	mux := httpapi.NewMux(readyChecker, instanceStore, cfg.AllowedNamespaces)
 
 	server := &http.Server{
 		Addr:              cfg.ListenAddress,

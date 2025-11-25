@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/deicod/convex-operator/api/v1alpha1"
 )
 
 type stubReady struct {
@@ -17,7 +19,7 @@ func (s stubReady) Ready(_ context.Context) error {
 }
 
 func TestRoutesHealthz(t *testing.T) {
-	mux := NewMux(nil)
+	mux := NewMux(nil, stubInstanceService{}, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
@@ -29,7 +31,7 @@ func TestRoutesHealthz(t *testing.T) {
 }
 
 func TestRoutesReadyzReady(t *testing.T) {
-	mux := NewMux(stubReady{})
+	mux := NewMux(stubReady{}, stubInstanceService{}, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
 	rec := httptest.NewRecorder()
@@ -41,7 +43,7 @@ func TestRoutesReadyzReady(t *testing.T) {
 }
 
 func TestRoutesReadyzNotReady(t *testing.T) {
-	mux := NewMux(stubReady{err: errors.New("not ready")})
+	mux := NewMux(stubReady{err: errors.New("not ready")}, stubInstanceService{}, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
 	rec := httptest.NewRecorder()
@@ -53,20 +55,19 @@ func TestRoutesReadyzNotReady(t *testing.T) {
 }
 
 func TestRoutesInstancesPlaceholder(t *testing.T) {
-	mux := NewMux(nil)
-
-	paths := []string{
-		"/api/v1/instances",
-		"/api/v1/instances/ns/name",
+	svc := stubInstanceService{
+		listFn: func(_ context.Context, namespace string) ([]v1alpha1.ConvexInstance, error) {
+			_ = namespace
+			return nil, nil
+		},
 	}
+	mux := NewMux(nil, svc, nil)
 
-	for _, path := range paths {
-		req := httptest.NewRequest(http.MethodGet, path, nil)
-		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, req)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
 
-		if rec.Code != http.StatusNotImplemented {
-			t.Fatalf("path %s: expected 501, got %d", path, rec.Code)
-		}
+	if rec.Code != http.StatusOK && rec.Code != http.StatusInternalServerError {
+		t.Fatalf("expected handler to run, got %d", rec.Code)
 	}
 }

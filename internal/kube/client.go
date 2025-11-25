@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/deicod/convex-operator-api/internal/config"
+	"github.com/deicod/convex-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
@@ -51,6 +52,9 @@ func (f Factory) Client(cfg config.Config) (client.Client, *rest.Config, error) 
 
 	scheme := runtime.NewScheme()
 	if err := corev1.AddToScheme(scheme); err != nil {
+		return nil, nil, err
+	}
+	if err := v1alpha1.AddToScheme(scheme); err != nil {
 		return nil, nil, err
 	}
 
