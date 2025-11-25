@@ -45,6 +45,10 @@ func (h *InstanceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.handleGet(w, r)
 		}
 	case http.MethodPost:
+		if r.URL.Path != "/api/v1/instances" && r.URL.Path != "/api/v1/instances/" {
+			writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+			return
+		}
 		h.handleCreate(w, r)
 	case http.MethodPut:
 		h.handlePut(w, r)

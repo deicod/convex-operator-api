@@ -157,6 +157,24 @@ func TestCreateInstance(t *testing.T) {
 	}
 }
 
+func TestPostToDetailPathIsRejected(t *testing.T) {
+	svc := stubInstanceService{
+		createFn: func(_ context.Context, obj *v1alpha1.ConvexInstance) error {
+			t.Fatalf("create should not be called for detail path: %+v", obj)
+			return nil
+		},
+	}
+
+	handler := NewInstanceHandler(svc, nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/instances/ns1/demo", bytes.NewBufferString(`{}`))
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("expected 405, got %d", rec.Code)
+	}
+}
+
 func TestPutInstanceReplacesSpec(t *testing.T) {
 	existing := makeConvexInstance("demo", "ns1")
 	svc := stubInstanceService{
