@@ -12,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -26,7 +25,7 @@ type Factory struct {
 // NewFactory returns a Factory wired to real Kubernetes configuration helpers.
 func NewFactory() Factory {
 	return Factory{
-		inClusterConfig:    ctrl.GetConfig,
+		inClusterConfig:    rest.InClusterConfig,
 		outOfClusterConfig: loadOutOfClusterConfig,
 		newClient:          client.New,
 	}
