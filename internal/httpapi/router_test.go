@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/deicod/convex-operator-api/internal/kube"
 	"github.com/deicod/convex-operator/api/v1alpha1"
 )
 
@@ -47,8 +48,18 @@ func (noopUpgrade) ApplyUpgrade(ctx context.Context, namespace, name, targetVers
 	return &v1alpha1.ConvexInstance{}, nil
 }
 
+type noopWatch struct{}
+
+func (noopWatch) Watch(ctx context.Context, namespace string) (kube.InstanceWatchStream, error) {
+	_ = ctx
+	_ = namespace
+	ch := make(chan kube.InstanceWatchEvent)
+	close(ch)
+	return &stubWatchStream{ch: ch}, nil
+}
+
 func TestRoutesHealthz(t *testing.T) {
-	mux := NewMux(nil, stubInstanceService{}, noopStatus{}, noopEvents{}, noopUpgrade{}, nil)
+	mux := NewMux(nil, stubInstanceService{}, noopStatus{}, noopEvents{}, noopUpgrade{}, noopWatch{}, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
@@ -60,7 +71,7 @@ func TestRoutesHealthz(t *testing.T) {
 }
 
 func TestRoutesReadyzReady(t *testing.T) {
-	mux := NewMux(stubReady{}, stubInstanceService{}, noopStatus{}, noopEvents{}, noopUpgrade{}, nil)
+	mux := NewMux(stubReady{}, stubInstanceService{}, noopStatus{}, noopEvents{}, noopUpgrade{}, noopWatch{}, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
 	rec := httptest.NewRecorder()
@@ -72,7 +83,7 @@ func TestRoutesReadyzReady(t *testing.T) {
 }
 
 func TestRoutesReadyzNotReady(t *testing.T) {
-	mux := NewMux(stubReady{err: errors.New("not ready")}, stubInstanceService{}, noopStatus{}, noopEvents{}, noopUpgrade{}, nil)
+	mux := NewMux(stubReady{err: errors.New("not ready")}, stubInstanceService{}, noopStatus{}, noopEvents{}, noopUpgrade{}, noopWatch{}, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
 	rec := httptest.NewRecorder()
@@ -90,7 +101,7 @@ func TestRoutesInstancesPlaceholder(t *testing.T) {
 			return nil, nil
 		},
 	}
-	mux := NewMux(nil, svc, noopStatus{}, noopEvents{}, noopUpgrade{}, nil)
+	mux := NewMux(nil, svc, noopStatus{}, noopEvents{}, noopUpgrade{}, noopWatch{}, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances", nil)
 	rec := httptest.NewRecorder()

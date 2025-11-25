@@ -9,7 +9,8 @@ import (
 
 // StatusServiceAdapter wraps a kube.StatusReader.
 type StatusServiceAdapter struct {
-	Reader kube.StatusReader
+	Reader       kube.StatusReader
+	ReadyCounter ReadyCounter
 }
 
 // GetStatus fetches status for a ConvexInstance and converts to DTO.
@@ -19,7 +20,22 @@ func (a StatusServiceAdapter) GetStatus(ctx context.Context, namespace, name str
 		return nil, err
 	}
 	resp := FromConvexInstance(*ci)
+	if a.ReadyCounter != nil {
+		ready, total, err := a.ReadyCounter.CountReadyPods(ctx, namespace, name)
+		if err != nil {
+			return nil, err
+		}
+		resp.Metrics = &StatusMetrics{
+			ReadyPods: ready,
+			TotalPods: total,
+		}
+	}
 	return &resp, nil
+}
+
+// ReadyCounter reports pod readiness counts for a ConvexInstance.
+type ReadyCounter interface {
+	CountReadyPods(ctx context.Context, namespace, name string) (ready, total int, err error)
 }
 
 // EventsServiceAdapter wraps a kube.EventsReader.

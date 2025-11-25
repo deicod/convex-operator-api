@@ -3,7 +3,7 @@ package httpapi
 import "net/http"
 
 // NewMux wires HTTP routes for the API service.
-func NewMux(ready ReadyChecker, instances InstanceService, status StatusService, events EventsService, upgrade UpgradeService, allowed []string) *http.ServeMux {
+func NewMux(ready ReadyChecker, instances InstanceService, status StatusService, events EventsService, upgrade UpgradeService, watch InstanceWatchProvider, allowed []string) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.Handle("GET /healthz", HealthHandler())
 	mux.Handle("GET /readyz", ReadyHandler(ready))
@@ -25,6 +25,7 @@ func NewMux(ready ReadyChecker, instances InstanceService, status StatusService,
 	mux.Handle("GET /api/v1/instances/{namespace}/{name}/status", StatusHandler{Service: status, AllowedNamespaces: allowed})
 	mux.Handle("GET /api/v1/instances/{namespace}/{name}/events", EventsHandler{Service: events, AllowedNamespaces: allowed})
 	mux.Handle("POST /api/v1/instances/{namespace}/{name}/upgrade", UpgradeHandler{Service: upgrade, AllowedNamespaces: allowed})
+	mux.Handle("GET /api/v1/instances/watch", WatchHandler{Watcher: watch, AllowedNamespaces: allowed})
 
 	return mux
 }
