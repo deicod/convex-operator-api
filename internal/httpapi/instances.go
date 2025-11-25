@@ -10,6 +10,7 @@ import (
 
 	"github.com/deicod/convex-operator/api/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // InstanceService defines CRUD interactions for ConvexInstances.
@@ -38,7 +39,7 @@ func NewInstanceHandler(svc InstanceService, allowed []string) http.Handler {
 func (h *InstanceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		if r.URL.Path == "/api/v1/instances" {
+		if r.URL.Path == "/api/v1/instances" || r.URL.Path == "/api/v1/instances/" {
 			h.handleList(w, r)
 		} else {
 			h.handleGet(w, r)
@@ -324,6 +325,13 @@ func writeKubeError(w http.ResponseWriter, err error) {
 	if apierrors.IsForbidden(err) {
 		writeError(w, http.StatusForbidden, "forbidden")
 		return
+	}
+	if statusErr, ok := err.(*apierrors.StatusError); ok {
+		switch statusErr.ErrStatus.Reason {
+		case metav1.StatusReasonInvalid, metav1.StatusReasonBadRequest:
+			writeError(w, http.StatusBadRequest, statusErr.Error())
+			return
+		}
 	}
 	writeError(w, http.StatusInternalServerError, fmt.Sprintf("internal error: %v", err))
 }
