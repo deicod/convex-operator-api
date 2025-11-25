@@ -3,6 +3,8 @@ package kube
 import (
 	"context"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/deicod/convex-operator-api/internal/config"
@@ -38,12 +40,15 @@ func TestFactoryUsesInClusterConfig(t *testing.T) {
 		},
 	}
 
-	cli, err := f.Client(config.Config{Mode: config.ModeInCluster})
+	cli, restCfg, err := f.Client(config.Config{Mode: config.ModeInCluster})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if cli == nil {
 		t.Fatalf("expected client instance")
+	}
+	if restCfg == nil {
+		t.Fatalf("expected rest config")
 	}
 	if !inClusterCalled {
 		t.Fatalf("expected in-cluster config to be used")
@@ -86,7 +91,7 @@ func TestFactoryUsesOutOfClusterConfig(t *testing.T) {
 		KubeContext:    "staging",
 	}
 
-	_, err := f.Client(cfg)
+	_, restCfg, err := f.Client(cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -96,6 +101,9 @@ func TestFactoryUsesOutOfClusterConfig(t *testing.T) {
 	}
 	if receivedContext != "staging" {
 		t.Fatalf("expected kubecontext to propagate, got %q", receivedContext)
+	}
+	if restCfg == nil || restCfg.Host != "out-of-cluster" {
+		t.Fatalf("expected rest config with host, got %+v", restCfg)
 	}
 }
 
@@ -114,20 +122,33 @@ func TestFactoryPropagatesConfigError(t *testing.T) {
 		},
 	}
 
-	_, err := f.Client(config.Config{Mode: config.ModeInCluster})
+	_, _, err := f.Client(config.Config{Mode: config.ModeInCluster})
 	if err == nil {
 		t.Fatalf("expected error to propagate")
 	}
 }
 
 func TestAPIReadinessChecker(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = r
+		if r.URL.Path == "/readyz" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer srv.Close()
+
 	scheme := runtime.NewScheme()
 	if err := corev1.AddToScheme(scheme); err != nil {
 		t.Fatalf("failed to add corev1 to scheme: %v", err)
 	}
 
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
-	checker := APIReadinessChecker{Client: fakeClient}
+	checker := APIReadinessChecker{
+		Client:     fakeClient,
+		RestConfig: &rest.Config{Host: srv.URL, TLSClientConfig: rest.TLSClientConfig{Insecure: true}},
+	}
 
 	if err := checker.Ready(context.Background()); err != nil {
 		t.Fatalf("expected ready check to succeed, got %v", err)
@@ -135,8 +156,38 @@ func TestAPIReadinessChecker(t *testing.T) {
 }
 
 func TestAPIReadinessCheckerRequiresClient(t *testing.T) {
-	checker := APIReadinessChecker{}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = r
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	checker := APIReadinessChecker{
+		RestConfig: &rest.Config{Host: srv.URL, TLSClientConfig: rest.TLSClientConfig{Insecure: true}},
+	}
 	if err := checker.Ready(context.Background()); err == nil {
 		t.Fatalf("expected error when client is nil")
+	}
+}
+
+func TestAPIReadinessCheckerReadyzFailure(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = r
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer srv.Close()
+
+	scheme := runtime.NewScheme()
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("failed to add corev1 to scheme: %v", err)
+	}
+
+	checker := APIReadinessChecker{
+		Client:     fake.NewClientBuilder().WithScheme(scheme).Build(),
+		RestConfig: &rest.Config{Host: srv.URL, TLSClientConfig: rest.TLSClientConfig{Insecure: true}},
+	}
+
+	if err := checker.Ready(context.Background()); err == nil {
+		t.Fatalf("expected readyz failure to surface")
 	}
 }

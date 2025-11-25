@@ -19,12 +19,15 @@ func main() {
 	}
 
 	kubeFactory := kube.NewFactory()
-	kubeClient, err := kubeFactory.Client(cfg)
+	kubeClient, restCfg, err := kubeFactory.Client(cfg)
 	if err != nil {
 		log.Fatalf("kube client error: %v", err)
 	}
 
-	readyChecker := kube.APIReadinessChecker{Client: kubeClient}
+	readyChecker := kube.APIReadinessChecker{
+		Client:     kubeClient,
+		RestConfig: restCfg,
+	}
 	mux := httpapi.NewMux(readyChecker)
 
 	server := &http.Server{
