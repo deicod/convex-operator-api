@@ -58,6 +58,11 @@ func (h *InstanceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *InstanceHandler) handleList(w http.ResponseWriter, r *http.Request) {
 	namespace := r.URL.Query().Get("namespace")
+	if namespace == "" {
+		h.handleListAllAllowed(w, r)
+		return
+	}
+
 	if !h.namespaceAllowed(namespace) {
 		writeError(w, http.StatusForbidden, "namespace not allowed")
 		return
@@ -69,12 +74,32 @@ func (h *InstanceHandler) handleList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var resp InstancesListResponse
-	resp.Items = make([]InstanceResponse, 0, len(items))
-	for _, item := range items {
-		resp.Items = append(resp.Items, FromConvexInstance(item))
+	writeInstances(w, items)
+}
+
+func (h *InstanceHandler) handleListAllAllowed(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var items []v1alpha1.ConvexInstance
+	if len(h.AllowedNamespaces) == 0 {
+		result, err := h.Service.ListConvexInstances(ctx, "")
+		if err != nil {
+			writeKubeError(w, err)
+			return
+		}
+		items = result
+	} else {
+		for _, ns := range h.AllowedNamespaces {
+			result, err := h.Service.ListConvexInstances(ctx, ns)
+			if err != nil {
+				writeKubeError(w, err)
+				return
+			}
+			items = append(items, result...)
+		}
 	}
-	writeJSON(w, http.StatusOK, resp)
+
+	writeInstances(w, items)
 }
 
 func (h *InstanceHandler) handleGet(w http.ResponseWriter, r *http.Request) {
@@ -267,6 +292,7 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(map[string]string{
+		"code":    http.StatusText(status),
 		"message": msg,
 	})
 }
@@ -275,6 +301,15 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(payload)
+}
+
+func writeInstances(w http.ResponseWriter, items []v1alpha1.ConvexInstance) {
+	var resp InstancesListResponse
+	resp.Items = make([]InstanceResponse, 0, len(items))
+	for _, item := range items {
+		resp.Items = append(resp.Items, FromConvexInstance(item))
+	}
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func writeKubeError(w http.ResponseWriter, err error) {

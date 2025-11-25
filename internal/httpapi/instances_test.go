@@ -84,9 +84,11 @@ func TestListInstances(t *testing.T) {
 
 func TestListInstancesRequiresNamespaceWhenRestricted(t *testing.T) {
 	svc := stubInstanceService{
-		listFn: func(_ context.Context, _ string) ([]v1alpha1.ConvexInstance, error) {
-			t.Fatalf("list should not be invoked when namespace missing")
-			return nil, nil
+		listFn: func(_ context.Context, ns string) ([]v1alpha1.ConvexInstance, error) {
+			if ns != "ns1" {
+				t.Fatalf("expected list to be scoped to allowed namespace, got %s", ns)
+			}
+			return []v1alpha1.ConvexInstance{makeConvexInstance("a", ns)}, nil
 		},
 	}
 
@@ -95,8 +97,16 @@ func TestListInstancesRequiresNamespaceWhenRestricted(t *testing.T) {
 	rec := httptest.NewRecorder()
 
 	handler.ServeHTTP(rec, req)
-	if rec.Code != http.StatusForbidden {
-		t.Fatalf("expected 403, got %d", rec.Code)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var resp InstancesListResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if len(resp.Items) != 1 || resp.Items[0].Metadata.Namespace != "ns1" {
+		t.Fatalf("unexpected items: %+v", resp.Items)
 	}
 }
 
@@ -236,6 +246,14 @@ func TestNamespaceNotAllowed(t *testing.T) {
 	handler.ServeHTTP(rec, req)
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("expected 403, got %d", rec.Code)
+	}
+
+	var body map[string]string
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("failed to decode body: %v", err)
+	}
+	if body["code"] == "" || body["message"] == "" {
+		t.Fatalf("expected error payload with code and message, got %v", body)
 	}
 }
 
