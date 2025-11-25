@@ -353,17 +353,17 @@ Goal: Secure HTTP access and ensure least-privilege cluster permissions.
   - [x] Ensure helper correctly denies access to disallowed namespaces.
   - [x] Ensure handlers use the helper consistently.
 - [x] Implement namespace authorization helper and wire into handlers.
-- [ ] Author RBAC manifests for in-cluster Deployment:
-  - [ ] Create a ServiceAccount for the API backend.
-  - [ ] Define Role/ClusterRole granting only needed verbs on `convexinstances`, `pods`, `events`, and optional Gateway API resources.
-  - [ ] Bind the Role/ClusterRole to the ServiceAccount.
+- [x] Author RBAC manifests for in-cluster Deployment:
+  - [x] Create a ServiceAccount for the API backend.
+  - [x] Define Role/ClusterRole granting only needed verbs on `convexinstances`, `pods`, `events`, and optional Gateway API resources.
+  - [x] Bind the Role/ClusterRole to the ServiceAccount.
 - [ ] Configure HTTP server timeouts and limits:
   - [x] Set ReadTimeout, WriteTimeout, IdleTimeout on `http.Server`.
   - [x] Set a safe maximum request body size in handlers where appropriate.
-- [ ] Review and adjust logging:
-  - [ ] Add tests or checks ensuring sensitive fields are not logged.
-  - [ ] Ensure error messages are useful but not leaking secrets.
-- [ ] Validate security by running the full test and lint suite and, if possible, security scanning tools.
+- [x] Review and adjust logging:
+  - [x] Add tests or checks ensuring sensitive fields are not logged.
+  - [x] Ensure error messages are useful but not leaking secrets.
+- [x] Validate security by running the full test and lint suite and, if possible, security scanning tools.
 
 ### Milestone 5 – Deployment, integration, and documentation
 
