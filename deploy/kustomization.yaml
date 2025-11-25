@@ -1,0 +1,15 @@
+namespace: convex-operator-api
+
+commonLabels:
+  app.kubernetes.io/name: convex-operator-api
+  app.kubernetes.io/part-of: convex-operator-api
+
+resources:
+  - namespace.yaml
+  - deployment.yaml
+  - service.yaml
+  - rbac.yaml
+
+images:
+  - name: ghcr.io/your-org/convex-operator-api
+    newTag: latest

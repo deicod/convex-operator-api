@@ -32,3 +32,6 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           args: ./...
+
+      - name: Build container image
+        run: DOCKER_BUILDKIT=1 docker build -t convex-operator-api:ci .
