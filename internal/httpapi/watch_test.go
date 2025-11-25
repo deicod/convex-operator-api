@@ -162,6 +162,10 @@ func TestWatchHandlerHonorsNamespaceQuery(t *testing.T) {
 }
 
 func TestWatchHandlerScansAllAllowedWhenNoNamespaceProvided(t *testing.T) {
+	origInterval := heartbeatInterval
+	heartbeatInterval = 5 * time.Millisecond
+	defer func() { heartbeatInterval = origInterval }()
+
 	events1 := make(chan kube.InstanceWatchEvent, 1)
 	events2 := make(chan kube.InstanceWatchEvent, 1)
 	stream1 := &stubWatchStream{ch: events1}
@@ -185,7 +189,9 @@ func TestWatchHandlerScansAllAllowedWhenNoNamespaceProvided(t *testing.T) {
 		},
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances/watch", nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances/watch", nil).WithContext(ctx)
 	rec := &flushingResponseRecorder{httptest.NewRecorder()}
 
 	done := make(chan struct{})
@@ -208,8 +214,42 @@ func TestWatchHandlerScansAllAllowedWhenNoNamespaceProvided(t *testing.T) {
 	if len(seen) != 2 || !contains(seen, "ns1") || !contains(seen, "ns2") {
 		t.Fatalf("expected watches for both allowed namespaces, got %v", seen)
 	}
-	if body := rec.Body.String(); !strings.Contains(body, `"namespace":"ns2"`) {
+	body := rec.Body.String()
+	if !strings.Contains(body, `"namespace":"ns2"`) {
 		t.Fatalf("expected streamed event for ns2, got %q", body)
+	}
+}
+
+func TestWatchHandlerEmitsHeartbeatWithoutEvents(t *testing.T) {
+	origInterval := heartbeatInterval
+	heartbeatInterval = 5 * time.Millisecond
+	defer func() { heartbeatInterval = origInterval }()
+
+	stream := &stubWatchStream{ch: make(chan kube.InstanceWatchEvent)}
+	handler := WatchHandler{
+		Watcher: stubWatchProvider{
+			watchFn: func(ctx context.Context, ns string) (kube.InstanceWatchStream, error) {
+				_ = ctx
+				if ns != "" {
+					t.Fatalf("unexpected namespace %q", ns)
+				}
+				return stream, nil
+			},
+		},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances/watch", nil).WithContext(ctx)
+	rec := &flushingResponseRecorder{httptest.NewRecorder()}
+
+	handler.ServeHTTP(rec, req)
+
+	if body := rec.Body.String(); !strings.Contains(body, ": keep-alive") {
+		t.Fatalf("expected heartbeat frames, got %q", body)
+	}
+	if !stream.stopCalled {
+		t.Fatalf("expected stream to be stopped")
 	}
 }
 

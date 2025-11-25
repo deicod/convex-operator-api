@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/deicod/convex-operator-api/internal/kube"
 	"github.com/deicod/convex-operator/api/v1alpha1"
@@ -108,10 +109,18 @@ func (h WatchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Connection", "keep-alive")
 	flusher.Flush()
 
+	ticker := time.NewTicker(heartbeatInterval)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
+		case <-ticker.C:
+			if err := writeHeartbeat(w); err != nil {
+				return
+			}
+			flusher.Flush()
 		case ev, ok := <-events:
 			if !ok {
 				return
@@ -126,6 +135,15 @@ func (h WatchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			flusher.Flush()
 		}
 	}
+}
+
+var heartbeatInterval = 10 * time.Second
+
+func writeHeartbeat(w http.ResponseWriter) error {
+	if _, err := w.Write([]byte(": keep-alive\n\n")); err != nil {
+		return err
+	}
+	return nil
 }
 
 func resolveWatchNamespaces(requested string, allowed []string) []string {
