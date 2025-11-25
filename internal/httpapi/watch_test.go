@@ -205,7 +205,7 @@ func TestWatchHandlerScansAllAllowedWhenNoNamespaceProvided(t *testing.T) {
 	close(events2)
 	<-done
 
-	if len(seen) != 2 || !(contains(seen, "ns1") && contains(seen, "ns2")) {
+	if len(seen) != 2 || !contains(seen, "ns1") || !contains(seen, "ns2") {
 		t.Fatalf("expected watches for both allowed namespaces, got %v", seen)
 	}
 	if body := rec.Body.String(); !strings.Contains(body, `"namespace":"ns2"`) {

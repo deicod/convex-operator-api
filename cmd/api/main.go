@@ -39,10 +39,11 @@ func main() {
 	instanceWatcher := kube.InstanceWatcher{Client: kubeClient}
 
 	mux := httpapi.NewMux(readyChecker, instanceStore, statusService, eventsService, upgradeService, instanceWatcher, cfg.AllowedNamespaces)
+	handler := httpapi.AuthMiddleware{Token: cfg.AuthToken}.Wrap(mux)
 
 	server := &http.Server{
 		Addr:              cfg.ListenAddress,
-		Handler:           loggingMiddleware(mux),
+		Handler:           loggingMiddleware(handler),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,

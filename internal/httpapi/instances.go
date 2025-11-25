@@ -104,8 +104,13 @@ func (h *InstanceHandler) handleCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	limitBody(w, r)
 	req, err := decodeRequest(r.Body)
 	if err != nil {
+		if bodyTooLarge(err) {
+			writeError(w, http.StatusRequestEntityTooLarge, "request body too large")
+			return
+		}
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -133,8 +138,13 @@ func (h *InstanceHandler) handlePut(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "not found")
 		return
 	}
+	limitBody(w, r)
 	req, err := decodeRequest(r.Body)
 	if err != nil {
+		if bodyTooLarge(err) {
+			writeError(w, http.StatusRequestEntityTooLarge, "request body too large")
+			return
+		}
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -177,8 +187,13 @@ func (h *InstanceHandler) handlePatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	limitBody(w, r)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
+		if bodyTooLarge(err) {
+			writeError(w, http.StatusRequestEntityTooLarge, "request body too large")
+			return
+		}
 		writeError(w, http.StatusBadRequest, "failed to read body")
 		return
 	}

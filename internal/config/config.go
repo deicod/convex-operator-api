@@ -23,6 +23,7 @@ type Config struct {
 	KubeconfigPath    string
 	KubeContext       string
 	AllowedNamespaces []string
+	AuthToken         string
 }
 
 // Parse builds a Config from the provided args and environment lookup.
@@ -46,6 +47,7 @@ func Parse(args []string, getenv func(string) string) (Config, error) {
 	kubeconfigEnv := getenv("KUBECONFIG")
 	kubeContextEnv := getenv("KUBECONTEXT")
 	allowedEnv := getenv("ALLOWED_NAMESPACES")
+	authTokenEnv := getenv("CONVEX_API_AUTH_TOKEN")
 
 	fs := flag.NewFlagSet("convex-operator-api", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
@@ -54,6 +56,7 @@ func Parse(args []string, getenv func(string) string) (Config, error) {
 	fs.StringVar(&cfg.Mode, "mode", cfg.Mode, "operation mode: in-cluster or out-of-cluster")
 	fs.StringVar(&cfg.KubeconfigPath, "kubeconfig", kubeconfigEnv, "path to kubeconfig (out-of-cluster)")
 	fs.StringVar(&cfg.KubeContext, "kubecontext", kubeContextEnv, "kubeconfig context override")
+	fs.StringVar(&cfg.AuthToken, "auth-token", authTokenEnv, "static bearer token for API access (optional)")
 
 	var allowed string
 	fs.StringVar(&allowed, "allowed-namespaces", allowedEnv, "comma-separated list of allowed namespaces")
