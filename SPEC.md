@@ -323,22 +323,22 @@ Goal: Typed CRUD HTTP endpoints backed by the Kubernetes API, built with TDD.
 
 Goal: Provide upgrade action, richer status, and optional streaming updates, following TDD.
 
-- [ ] Write tests for `POST /api/v1/instances/{namespace}/{name}/upgrade`:
-  - [ ] Verify validation of `targetVersion` and `strategy`.
-  - [ ] Verify that invalid strategies are rejected with the correct HTTP status.
-- [ ] Implement `POST /api/v1/instances/{namespace}/{name}/upgrade` to satisfy tests.
-- [ ] Write tests for `GET /api/v1/instances/{namespace}/{name}/status`:
-  - [ ] Verify that status fields are correctly returned from the CR.
+- [x] Write tests for `POST /api/v1/instances/{namespace}/{name}/upgrade`:
+  - [x] Verify validation of `targetVersion` and `strategy`.
+  - [x] Verify that invalid strategies are rejected with the correct HTTP status.
+- [x] Implement `POST /api/v1/instances/{namespace}/{name}/upgrade` to satisfy tests.
+- [x] Write tests for `GET /api/v1/instances/{namespace}/{name}/status`:
+  - [x] Verify that status fields are correctly returned from the CR.
   - [ ] If computed metrics (pods readiness) are included, verify their computation via fake data.
-- [ ] Implement `GET /api/v1/instances/{namespace}/{name}/status` handler.
-- [ ] Write tests for `GET /api/v1/instances/{namespace}/{name}/events` (if implemented in v1):
-  - [ ] Use fake Events to test filtering and output format.
-- [ ] Implement `/events` handler once tests are in place.
+- [x] Implement `GET /api/v1/instances/{namespace}/{name}/status` handler.
+- [x] Write tests for `GET /api/v1/instances/{namespace}/{name}/events` (if implemented in v1):
+  - [x] Use fake Events to test filtering and output format.
+- [x] Implement `/events` handler once tests are in place.
 - [ ] Design and test SSE or watch behavior for `/api/v1/instances/watch`:
   - [ ] Abstract watcher behind an interface to allow deterministic unit tests.
   - [ ] Test event serialization and connection lifecycle handling.
 - [ ] Implement `/watch` handler using SSE and the watcher abstraction.
-- [ ] Re-run `go test`, `go vet`, and `golangci-lint` and fix any issues.
+- [x] Re-run `go test`, `go vet`, and `golangci-lint` and fix any issues.
 
 ### Milestone 4 – Security, auth, and RBAC
 
