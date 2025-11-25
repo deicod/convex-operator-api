@@ -344,22 +344,22 @@ Goal: Provide upgrade action, richer status, and optional streaming updates, fol
 
 Goal: Secure HTTP access and ensure least-privilege cluster permissions.
 
-- [ ] Write tests for bearer token authentication middleware:
-  - [ ] Ensure requests without Authorization are rejected.
-  - [ ] Ensure requests with incorrect tokens are rejected.
-  - [ ] Ensure requests with correct tokens pass through.
-- [ ] Implement bearer token auth middleware according to tests.
-- [ ] Write tests for AllowedNamespaces enforcement:
-  - [ ] Ensure helper correctly denies access to disallowed namespaces.
-  - [ ] Ensure handlers use the helper consistently.
-- [ ] Implement namespace authorization helper and wire into handlers.
+- [x] Write tests for bearer token authentication middleware:
+  - [x] Ensure requests without Authorization are rejected.
+  - [x] Ensure requests with incorrect tokens are rejected.
+  - [x] Ensure requests with correct tokens pass through.
+- [x] Implement bearer token auth middleware according to tests.
+- [x] Write tests for AllowedNamespaces enforcement:
+  - [x] Ensure helper correctly denies access to disallowed namespaces.
+  - [x] Ensure handlers use the helper consistently.
+- [x] Implement namespace authorization helper and wire into handlers.
 - [ ] Author RBAC manifests for in-cluster Deployment:
   - [ ] Create a ServiceAccount for the API backend.
   - [ ] Define Role/ClusterRole granting only needed verbs on `convexinstances`, `pods`, `events`, and optional Gateway API resources.
   - [ ] Bind the Role/ClusterRole to the ServiceAccount.
 - [ ] Configure HTTP server timeouts and limits:
-  - [ ] Set ReadTimeout, WriteTimeout, IdleTimeout on `http.Server`.
-  - [ ] Set a safe maximum request body size in handlers where appropriate.
+  - [x] Set ReadTimeout, WriteTimeout, IdleTimeout on `http.Server`.
+  - [x] Set a safe maximum request body size in handlers where appropriate.
 - [ ] Review and adjust logging:
   - [ ] Add tests or checks ensuring sensitive fields are not logged.
   - [ ] Ensure error messages are useful but not leaking secrets.
