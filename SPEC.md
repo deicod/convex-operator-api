@@ -329,15 +329,15 @@ Goal: Provide upgrade action, richer status, and optional streaming updates, fol
 - [x] Implement `POST /api/v1/instances/{namespace}/{name}/upgrade` to satisfy tests.
 - [x] Write tests for `GET /api/v1/instances/{namespace}/{name}/status`:
   - [x] Verify that status fields are correctly returned from the CR.
-  - [ ] If computed metrics (pods readiness) are included, verify their computation via fake data.
+  - [x] If computed metrics (pods readiness) are included, verify their computation via fake data.
 - [x] Implement `GET /api/v1/instances/{namespace}/{name}/status` handler.
 - [x] Write tests for `GET /api/v1/instances/{namespace}/{name}/events` (if implemented in v1):
   - [x] Use fake Events to test filtering and output format.
 - [x] Implement `/events` handler once tests are in place.
-- [ ] Design and test SSE or watch behavior for `/api/v1/instances/watch`:
-  - [ ] Abstract watcher behind an interface to allow deterministic unit tests.
-  - [ ] Test event serialization and connection lifecycle handling.
-- [ ] Implement `/watch` handler using SSE and the watcher abstraction.
+- [x] Design and test SSE or watch behavior for `/api/v1/instances/watch`:
+  - [x] Abstract watcher behind an interface to allow deterministic unit tests.
+  - [x] Test event serialization and connection lifecycle handling.
+- [x] Implement `/watch` handler using SSE and the watcher abstraction.
 - [x] Re-run `go test`, `go vet`, and `golangci-lint` and fix any issues.
 
 ### Milestone 4 – Security, auth, and RBAC
