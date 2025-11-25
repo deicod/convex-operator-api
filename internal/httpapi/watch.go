@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 
 	"github.com/deicod/convex-operator-api/internal/kube"
 	"github.com/deicod/convex-operator/api/v1alpha1"
@@ -47,18 +48,60 @@ func (h WatchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ns := r.URL.Query().Get("namespace")
-	if ns != "" && !namespaceAllowed(h.AllowedNamespaces, ns) {
+	requestedNS := r.URL.Query().Get("namespace")
+	if requestedNS != "" && !namespaceAllowed(h.AllowedNamespaces, requestedNS) {
 		writeError(w, http.StatusForbidden, "namespace not allowed")
 		return
 	}
 
-	stream, err := h.Watcher.Watch(r.Context(), ns)
-	if err != nil {
-		writeKubeError(w, err)
-		return
+	namespaces := resolveWatchNamespaces(requestedNS, h.AllowedNamespaces)
+	ctx := r.Context()
+
+	streams := make([]kube.InstanceWatchStream, 0, len(namespaces))
+	events := make(chan kube.InstanceWatchEvent)
+
+	stopAll := func() {
+		for _, s := range streams {
+			s.Stop()
+		}
 	}
-	defer stream.Stop()
+
+	var wg sync.WaitGroup
+	for _, ns := range namespaces {
+		stream, err := h.Watcher.Watch(ctx, ns)
+		if err != nil {
+			stopAll()
+			writeKubeError(w, err)
+			return
+		}
+		streams = append(streams, stream)
+
+		wg.Add(1)
+		go func(st kube.InstanceWatchStream) {
+			defer wg.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case ev, ok := <-st.ResultChan():
+					if !ok {
+						return
+					}
+					select {
+					case events <- ev:
+					case <-ctx.Done():
+						return
+					}
+				}
+			}
+		}(stream)
+	}
+
+	go func() {
+		wg.Wait()
+		close(events)
+	}()
+	defer stopAll()
 
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
@@ -67,9 +110,9 @@ func (h WatchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		select {
-		case <-r.Context().Done():
+		case <-ctx.Done():
 			return
-		case ev, ok := <-stream.ResultChan():
+		case ev, ok := <-events:
 			if !ok {
 				return
 			}
@@ -83,6 +126,16 @@ func (h WatchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			flusher.Flush()
 		}
 	}
+}
+
+func resolveWatchNamespaces(requested string, allowed []string) []string {
+	if requested != "" {
+		return []string{requested}
+	}
+	if len(allowed) > 0 {
+		return allowed
+	}
+	return []string{""}
 }
 
 func summarizeInstance(ci v1alpha1.ConvexInstance) InstanceSummary {

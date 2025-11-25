@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -89,15 +90,13 @@ func TestWatchHandlerStreamsEvents(t *testing.T) {
 func TestWatchHandlerFiltersNamespaces(t *testing.T) {
 	events := make(chan kube.InstanceWatchEvent, 1)
 	stream := &stubWatchStream{ch: events}
-
+	var called []string
 	handler := WatchHandler{
 		AllowedNamespaces: []string{"allowed"},
 		Watcher: stubWatchProvider{
 			watchFn: func(ctx context.Context, ns string) (kube.InstanceWatchStream, error) {
 				_ = ctx
-				if ns != "" {
-					t.Fatalf("unexpected namespace parameter %q", ns)
-				}
+				called = append(called, ns)
 				return stream, nil
 			},
 		},
@@ -123,6 +122,9 @@ func TestWatchHandlerFiltersNamespaces(t *testing.T) {
 
 	if body := rec.Body.String(); body != "" {
 		t.Fatalf("expected filtered events to produce no output, got %q", body)
+	}
+	if len(called) != 1 || called[0] != "allowed" {
+		t.Fatalf("expected watch to scope to allowed namespace, got %v", called)
 	}
 }
 
@@ -157,4 +159,65 @@ func TestWatchHandlerHonorsNamespaceQuery(t *testing.T) {
 	if !stream.stopCalled {
 		t.Fatalf("expected stream to be stopped on client disconnect")
 	}
+}
+
+func TestWatchHandlerScansAllAllowedWhenNoNamespaceProvided(t *testing.T) {
+	events1 := make(chan kube.InstanceWatchEvent, 1)
+	events2 := make(chan kube.InstanceWatchEvent, 1)
+	stream1 := &stubWatchStream{ch: events1}
+	stream2 := &stubWatchStream{ch: events2}
+
+	var seen []string
+	handler := WatchHandler{
+		AllowedNamespaces: []string{"ns1", "ns2"},
+		Watcher: stubWatchProvider{
+			watchFn: func(ctx context.Context, ns string) (kube.InstanceWatchStream, error) {
+				_ = ctx
+				seen = append(seen, ns)
+				if ns == "ns1" {
+					return stream1, nil
+				}
+				if ns == "ns2" {
+					return stream2, nil
+				}
+				return nil, fmt.Errorf("unexpected namespace %s", ns)
+			},
+		},
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances/watch", nil)
+	rec := &flushingResponseRecorder{httptest.NewRecorder()}
+
+	done := make(chan struct{})
+	go func() {
+		handler.ServeHTTP(rec, req)
+		close(done)
+	}()
+
+	events2 <- kube.InstanceWatchEvent{
+		Type: "ADDED",
+		Object: v1alpha1.ConvexInstance{
+			ObjectMeta: metav1.ObjectMeta{Name: "demo", Namespace: "ns2"},
+			Spec:       v1alpha1.ConvexInstanceSpec{Environment: "dev", Version: "1.0.0"},
+		},
+	}
+	close(events1)
+	close(events2)
+	<-done
+
+	if len(seen) != 2 || !(contains(seen, "ns1") && contains(seen, "ns2")) {
+		t.Fatalf("expected watches for both allowed namespaces, got %v", seen)
+	}
+	if body := rec.Body.String(); !strings.Contains(body, `"namespace":"ns2"`) {
+		t.Fatalf("expected streamed event for ns2, got %q", body)
+	}
+}
+
+func contains(list []string, val string) bool {
+	for _, v := range list {
+		if v == val {
+			return true
+		}
+	}
+	return false
 }
