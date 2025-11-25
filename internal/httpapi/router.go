@@ -3,21 +3,25 @@ package httpapi
 import "net/http"
 
 // NewMux wires HTTP routes for the API service.
-func NewMux(ready ReadyChecker) *http.ServeMux {
+func NewMux(ready ReadyChecker, instances InstanceService, allowed []string) *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.Handle("/healthz", HealthHandler())
-	mux.Handle("/readyz", ReadyHandler(ready))
+	mux.Handle("GET /healthz", HealthHandler())
+	mux.Handle("GET /readyz", ReadyHandler(ready))
 
-	placeholder := notImplementedHandler()
-	mux.Handle("/api/v1/instances", placeholder)
-	mux.Handle("/api/v1/instances/", placeholder)
+	handler := NewInstanceHandler(instances, allowed)
+	mux.Handle("GET /api/v1/instances", http.HandlerFunc(handler.handleList))
+	mux.Handle("GET /api/v1/instances/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if isCollectionPath(r.URL.Path) {
+			handler.handleList(w, r)
+			return
+		}
+		handler.handleGet(w, r)
+	}))
+	mux.Handle("POST /api/v1/instances", http.HandlerFunc(handler.handleCreate))
+	mux.Handle("POST /api/v1/instances/", http.HandlerFunc(handler.handleCreate))
+	mux.Handle("PUT /api/v1/instances/", http.HandlerFunc(handler.handlePut))
+	mux.Handle("PATCH /api/v1/instances/", http.HandlerFunc(handler.handlePatch))
+	mux.Handle("DELETE /api/v1/instances/", http.HandlerFunc(handler.handleDelete))
 
 	return mux
-}
-
-func notImplementedHandler() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_ = r
-		http.Error(w, http.StatusText(http.StatusNotImplemented), http.StatusNotImplemented)
-	})
 }
