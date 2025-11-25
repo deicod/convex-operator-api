@@ -29,35 +29,10 @@ type InstanceHandler struct {
 }
 
 // NewInstanceHandler constructs a handler for CRUD operations.
-func NewInstanceHandler(svc InstanceService, allowed []string) http.Handler {
+func NewInstanceHandler(svc InstanceService, allowed []string) *InstanceHandler {
 	return &InstanceHandler{
 		Service:           svc,
 		AllowedNamespaces: allowed,
-	}
-}
-
-func (h *InstanceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		if r.URL.Path == "/api/v1/instances" || r.URL.Path == "/api/v1/instances/" {
-			h.handleList(w, r)
-		} else {
-			h.handleGet(w, r)
-		}
-	case http.MethodPost:
-		if r.URL.Path != "/api/v1/instances" && r.URL.Path != "/api/v1/instances/" {
-			writeError(w, http.StatusMethodNotAllowed, "method not allowed")
-			return
-		}
-		h.handleCreate(w, r)
-	case http.MethodPut:
-		h.handlePut(w, r)
-	case http.MethodPatch:
-		h.handlePatch(w, r)
-	case http.MethodDelete:
-		h.handleDelete(w, r)
-	default:
-		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
 }
 
@@ -127,6 +102,11 @@ func (h *InstanceHandler) handleGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *InstanceHandler) handleCreate(w http.ResponseWriter, r *http.Request) {
+	if !isCollectionPath(r.URL.Path) {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
 	req, err := decodeRequest(r.Body)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
@@ -268,6 +248,10 @@ func (h *InstanceHandler) namespaceAllowed(ns string) bool {
 		}
 	}
 	return false
+}
+
+func isCollectionPath(path string) bool {
+	return path == "/api/v1/instances" || path == "/api/v1/instances/"
 }
 
 func parseDetailPath(path string) (namespace, name string, ok bool) {

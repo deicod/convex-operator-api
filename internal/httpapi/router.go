@@ -8,14 +8,20 @@ func NewMux(ready ReadyChecker, instances InstanceService, allowed []string) *ht
 	mux.Handle("GET /healthz", HealthHandler())
 	mux.Handle("GET /readyz", ReadyHandler(ready))
 
-	instancesHandler := NewInstanceHandler(instances, allowed)
-	mux.Handle("GET /api/v1/instances", instancesHandler)
-	mux.Handle("GET /api/v1/instances/", instancesHandler)
-	mux.Handle("POST /api/v1/instances", instancesHandler)
-	mux.Handle("POST /api/v1/instances/", instancesHandler)
-	mux.Handle("PUT /api/v1/instances/", instancesHandler)
-	mux.Handle("PATCH /api/v1/instances/", instancesHandler)
-	mux.Handle("DELETE /api/v1/instances/", instancesHandler)
+	handler := NewInstanceHandler(instances, allowed)
+	mux.Handle("GET /api/v1/instances", http.HandlerFunc(handler.handleList))
+	mux.Handle("GET /api/v1/instances/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if isCollectionPath(r.URL.Path) {
+			handler.handleList(w, r)
+			return
+		}
+		handler.handleGet(w, r)
+	}))
+	mux.Handle("POST /api/v1/instances", http.HandlerFunc(handler.handleCreate))
+	mux.Handle("POST /api/v1/instances/", http.HandlerFunc(handler.handleCreate))
+	mux.Handle("PUT /api/v1/instances/", http.HandlerFunc(handler.handlePut))
+	mux.Handle("PATCH /api/v1/instances/", http.HandlerFunc(handler.handlePatch))
+	mux.Handle("DELETE /api/v1/instances/", http.HandlerFunc(handler.handleDelete))
 
 	return mux
 }

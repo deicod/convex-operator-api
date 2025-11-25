@@ -64,11 +64,11 @@ func TestListInstances(t *testing.T) {
 		},
 	}
 
-	handler := NewInstanceHandler(svc, []string{"ns1"})
+	mux := NewMux(nil, svc, []string{"ns1"})
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances?namespace=ns1", nil)
 	rec := httptest.NewRecorder()
 
-	handler.ServeHTTP(rec, req)
+	mux.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Code)
 	}
@@ -92,11 +92,11 @@ func TestListInstancesRequiresNamespaceWhenRestricted(t *testing.T) {
 		},
 	}
 
-	handler := NewInstanceHandler(svc, []string{"ns1"})
+	mux := NewMux(nil, svc, []string{"ns1"})
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances", nil)
 	rec := httptest.NewRecorder()
 
-	handler.ServeHTTP(rec, req)
+	mux.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Code)
 	}
@@ -121,11 +121,11 @@ func TestGetInstance(t *testing.T) {
 		},
 	}
 
-	handler := NewInstanceHandler(svc, nil)
+	mux := NewMux(nil, svc, nil)
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances/ns1/demo", nil)
 	rec := httptest.NewRecorder()
 
-	handler.ServeHTTP(rec, req)
+	mux.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Code)
 	}
@@ -144,11 +144,11 @@ func TestCreateInstance(t *testing.T) {
 		"metadata": {"name": "demo", "namespace": "ns1"},
 		"spec": {"environment": "dev", "version": "1.0.0", "backend": {"db": {"engine": "postgres"}}, "networking": {"host": "example.com"}}
 	}`
-	handler := NewInstanceHandler(svc, nil)
+	mux := NewMux(nil, svc, nil)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/instances", bytes.NewBufferString(reqBody))
 	rec := httptest.NewRecorder()
 
-	handler.ServeHTTP(rec, req)
+	mux.ServeHTTP(rec, req)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d", rec.Code)
 	}
@@ -165,11 +165,11 @@ func TestPostToDetailPathIsRejected(t *testing.T) {
 		},
 	}
 
-	handler := NewInstanceHandler(svc, nil)
+	mux := NewMux(nil, svc, nil)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/instances/ns1/demo", bytes.NewBufferString(`{}`))
 	rec := httptest.NewRecorder()
 
-	handler.ServeHTTP(rec, req)
+	mux.ServeHTTP(rec, req)
 	if rec.Code != http.StatusMethodNotAllowed {
 		t.Fatalf("expected 405, got %d", rec.Code)
 	}
@@ -194,11 +194,11 @@ func TestPutInstanceReplacesSpec(t *testing.T) {
 		"metadata": {"name": "ignored", "namespace": "ignored"},
 		"spec": {"environment": "dev", "version": "2.0.0", "backend": {"db": {"engine": "postgres"}}, "networking": {"host": "example.com"}}
 	}`
-	handler := NewInstanceHandler(svc, nil)
+	mux := NewMux(nil, svc, nil)
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/instances/ns1/demo", bytes.NewBufferString(body))
 	rec := httptest.NewRecorder()
 
-	handler.ServeHTTP(rec, req)
+	mux.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Code)
 	}
@@ -220,11 +220,11 @@ func TestPatchInstance(t *testing.T) {
 	}
 
 	body := `{"version":"2.0.0"}`
-	handler := NewInstanceHandler(svc, nil)
+	mux := NewMux(nil, svc, nil)
 	req := httptest.NewRequest(http.MethodPatch, "/api/v1/instances/ns1/demo", bytes.NewBufferString(body))
 	rec := httptest.NewRecorder()
 
-	handler.ServeHTTP(rec, req)
+	mux.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Code)
 	}
@@ -238,11 +238,11 @@ func TestDeleteInstance(t *testing.T) {
 			return nil
 		},
 	}
-	handler := NewInstanceHandler(svc, []string{"ns1"})
+	mux := NewMux(nil, svc, []string{"ns1"})
 	req := httptest.NewRequest(http.MethodDelete, "/api/v1/instances/ns1/demo", nil)
 	rec := httptest.NewRecorder()
 
-	handler.ServeHTTP(rec, req)
+	mux.ServeHTTP(rec, req)
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("expected 204, got %d", rec.Code)
 	}
@@ -257,11 +257,11 @@ func TestNamespaceNotAllowed(t *testing.T) {
 			return nil, nil
 		},
 	}
-	handler := NewInstanceHandler(svc, []string{"allowed"})
+	mux := NewMux(nil, svc, []string{"allowed"})
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances/denied/demo", nil)
 	rec := httptest.NewRecorder()
 
-	handler.ServeHTTP(rec, req)
+	mux.ServeHTTP(rec, req)
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("expected 403, got %d", rec.Code)
 	}
@@ -281,11 +281,11 @@ func TestNotFoundMapping(t *testing.T) {
 			return nil, apierrors.NewNotFound(schema.GroupResource{Group: "convex.icod.de", Resource: "convexinstances"}, "missing")
 		},
 	}
-	handler := NewInstanceHandler(svc, nil)
+	mux := NewMux(nil, svc, nil)
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances/ns1/missing", nil)
 	rec := httptest.NewRecorder()
 
-	handler.ServeHTTP(rec, req)
+	mux.ServeHTTP(rec, req)
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", rec.Code)
 	}
@@ -295,11 +295,11 @@ func TestBadJSONReturns400(t *testing.T) {
 	svc := stubInstanceService{
 		createFn: func(_ context.Context, _ *v1alpha1.ConvexInstance) error { return nil },
 	}
-	handler := NewInstanceHandler(svc, nil)
+	mux := NewMux(nil, svc, nil)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/instances", bytes.NewBufferString("{"))
 	rec := httptest.NewRecorder()
 
-	handler.ServeHTTP(rec, req)
+	mux.ServeHTTP(rec, req)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", rec.Code)
 	}
@@ -311,11 +311,11 @@ func TestServiceErrorMapsTo500(t *testing.T) {
 			return nil, errors.New("boom")
 		},
 	}
-	handler := NewInstanceHandler(svc, nil)
+	mux := NewMux(nil, svc, nil)
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances", nil)
 	rec := httptest.NewRecorder()
 
-	handler.ServeHTTP(rec, req)
+	mux.ServeHTTP(rec, req)
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("expected 500, got %d", rec.Code)
 	}
@@ -331,7 +331,7 @@ func TestConflictMapsTo409(t *testing.T) {
 			return &obj, nil
 		},
 	}
-	handler := NewInstanceHandler(svc, nil)
+	mux := NewMux(nil, svc, nil)
 	body := `{
 		"metadata": {"name": "demo", "namespace": "ns1"},
 		"spec": {"environment": "dev", "version": "1.0.0", "backend": {"db": {"engine": "postgres"}}, "networking": {"host": "example.com"}}
@@ -339,7 +339,7 @@ func TestConflictMapsTo409(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/instances/ns1/demo", bytes.NewBufferString(body))
 	rec := httptest.NewRecorder()
 
-	handler.ServeHTTP(rec, req)
+	mux.ServeHTTP(rec, req)
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("expected 409, got %d", rec.Code)
 	}
