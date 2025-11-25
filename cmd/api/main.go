@@ -39,7 +39,13 @@ func main() {
 	instanceWatcher := kube.InstanceWatcher{Client: kubeClient}
 
 	mux := httpapi.NewMux(readyChecker, instanceStore, statusService, eventsService, upgradeService, instanceWatcher, cfg.AllowedNamespaces)
-	handler := httpapi.AuthMiddleware{Token: cfg.AuthToken}.Wrap(mux)
+
+	protected := httpapi.AuthMiddleware{Token: cfg.AuthToken}.Wrap(mux)
+	handler := httpapi.HealthBypassMiddleware{
+		Underlying:  mux,
+		Protected:   protected,
+		HealthPaths: []string{"/healthz", "/readyz"},
+	}
 
 	server := &http.Server{
 		Addr:              cfg.ListenAddress,

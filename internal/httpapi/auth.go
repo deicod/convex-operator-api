@@ -27,3 +27,21 @@ func (a AuthMiddleware) Wrap(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+// HealthBypassMiddleware skips auth for health endpoints to keep probes working.
+type HealthBypassMiddleware struct {
+	Underlying  http.Handler // unprotected handler (typically the raw mux)
+	Protected   http.Handler // handler wrapped with auth
+	HealthPaths []string
+}
+
+// ServeHTTP bypasses auth on health/ready paths.
+func (m HealthBypassMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	for _, p := range m.HealthPaths {
+		if r.URL.Path == p {
+			m.Underlying.ServeHTTP(w, r)
+			return
+		}
+	}
+	m.Protected.ServeHTTP(w, r)
+}

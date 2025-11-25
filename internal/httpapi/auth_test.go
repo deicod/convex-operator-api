@@ -76,3 +76,39 @@ func TestAuthMiddlewareAllowsCorrectToken(t *testing.T) {
 		t.Fatalf("expected 200, got %d", rec.Code)
 	}
 }
+
+func TestHealthBypassMiddlewareAllowsHealthWithoutToken(t *testing.T) {
+	rawHandler := &stubHandler{}
+	protected := AuthMiddleware{Token: "secret"}.Wrap(rawHandler)
+	mw := HealthBypassMiddleware{
+		Underlying:  rawHandler,
+		Protected:   protected,
+		HealthPaths: []string{"/healthz", "/readyz"},
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	rec := httptest.NewRecorder()
+
+	mw.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected health to bypass auth, got %d", rec.Code)
+	}
+}
+
+func TestHealthBypassMiddlewareStillRequiresAuthForAPI(t *testing.T) {
+	rawHandler := &stubHandler{}
+	protected := AuthMiddleware{Token: "secret"}.Wrap(rawHandler)
+	mw := HealthBypassMiddleware{
+		Underlying:  rawHandler,
+		Protected:   protected,
+		HealthPaths: []string{"/healthz", "/readyz"},
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances", nil)
+	rec := httptest.NewRecorder()
+
+	mw.ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected API call to require auth, got %d", rec.Code)
+	}
+}
