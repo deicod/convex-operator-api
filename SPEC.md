@@ -287,37 +287,37 @@ Goal: A running HTTP server with `http.ServeMux`, config parsing, and a live Kub
 
 Goal: Typed CRUD HTTP endpoints backed by the Kubernetes API, built with TDD.
 
-- [ ] Write tests for `internal/kube` ConvexInstance helpers:
-  - [ ] Test ListConvexInstances, GetConvexInstance, CreateConvexInstance, UpdateConvexInstance, DeleteConvexInstance, using a fake client.
-- [ ] Implement `internal/kube` helpers to satisfy the tests:
-  - [ ] ListConvexInstances(namespace string) with support for all namespaces when namespace is empty.
-  - [ ] GetConvexInstance(namespace, name string).
-  - [ ] CreateConvexInstance(obj *v1alpha1.ConvexInstance).
-  - [ ] UpdateConvexInstance(obj *v1alpha1.ConvexInstance).
-  - [ ] DeleteConvexInstance(namespace, name string).
-- [ ] Define DTOs in `internal/httpapi` for request/response and write tests for JSON marshalling and validation:
-  - [ ] DTO for create/update requests (metadata + spec).
-  - [ ] DTO for responses (metadata, spec, status).
-- [ ] Write handler tests for `GET /api/v1/instances`:
-  - [ ] Verify namespace filtering and AllowedNamespaces enforcement.
-  - [ ] Verify correct mapping from Kubernetes errors to HTTP status codes.
-- [ ] Implement `GET /api/v1/instances` handler to satisfy tests.
-- [ ] Write handler tests for `GET /api/v1/instances/{namespace}/{name}`:
-  - [ ] Verify path parsing, allowed namespace checks, 404 behavior, and happy path.
-- [ ] Implement `GET /api/v1/instances/{namespace}/{name}` handler.
-- [ ] Write handler tests for `POST /api/v1/instances`:
-  - [ ] Verify required field validation and enum validation (environment, upgrade strategy).
-  - [ ] Verify AllowedNamespaces enforcement.
-  - [ ] Verify that successful creation returns HTTP 201.
-- [ ] Implement `POST /api/v1/instances` handler according to tests.
-- [ ] Write handler tests for `PUT /api/v1/instances/{namespace}/{name}` and `PATCH /api/v1/instances/{namespace}/{name}`:
-  - [ ] Verify that only `spec` is changed.
-  - [ ] Verify validation and error mapping.
-- [ ] Implement `PUT` and `PATCH` handlers.
-- [ ] Write handler tests for `DELETE /api/v1/instances/{namespace}/{name}`:
-  - [ ] Verify AllowedNamespaces enforcement and deletion behavior.
-- [ ] Implement `DELETE` handler.
-- [ ] Ensure all CRUD tests pass and that `go vet` and `golangci-lint` remain clean.
+- [x] Write tests for `internal/kube` ConvexInstance helpers:
+  - [x] Test ListConvexInstances, GetConvexInstance, CreateConvexInstance, UpdateConvexInstance, DeleteConvexInstance, using a fake client.
+- [x] Implement `internal/kube` helpers to satisfy the tests:
+  - [x] ListConvexInstances(namespace string) with support for all namespaces when namespace is empty.
+  - [x] GetConvexInstance(namespace, name string).
+  - [x] CreateConvexInstance(obj *v1alpha1.ConvexInstance).
+  - [x] UpdateConvexInstance(obj *v1alpha1.ConvexInstance).
+  - [x] DeleteConvexInstance(namespace, name string).
+- [x] Define DTOs in `internal/httpapi` for request/response and write tests for JSON marshalling and validation:
+  - [x] DTO for create/update requests (metadata + spec).
+  - [x] DTO for responses (metadata, spec, status).
+- [x] Write handler tests for `GET /api/v1/instances`:
+  - [x] Verify namespace filtering and AllowedNamespaces enforcement.
+  - [x] Verify correct mapping from Kubernetes errors to HTTP status codes.
+- [x] Implement `GET /api/v1/instances` handler to satisfy tests.
+- [x] Write handler tests for `GET /api/v1/instances/{namespace}/{name}`:
+  - [x] Verify path parsing, allowed namespace checks, 404 behavior, and happy path.
+- [x] Implement `GET /api/v1/instances/{namespace}/{name}` handler.
+- [x] Write handler tests for `POST /api/v1/instances`:
+  - [x] Verify required field validation and enum validation (environment, upgrade strategy).
+  - [x] Verify AllowedNamespaces enforcement.
+  - [x] Verify that successful creation returns HTTP 201.
+- [x] Implement `POST /api/v1/instances` handler according to tests.
+- [x] Write handler tests for `PUT /api/v1/instances/{namespace}/{name}` and `PATCH /api/v1/instances/{namespace}/{name}`:
+  - [x] Verify that only `spec` is changed.
+  - [x] Verify validation and error mapping.
+- [x] Implement `PUT` and `PATCH` handlers.
+- [x] Write handler tests for `DELETE /api/v1/instances/{namespace}/{name}`:
+  - [x] Verify AllowedNamespaces enforcement and deletion behavior.
+- [x] Implement `DELETE` handler.
+- [x] Ensure all CRUD tests pass and that `go vet` and `golangci-lint` remain clean.
 
 ### Milestone 3 – Actions, status, diagnostics, and watch
 
