@@ -3,7 +3,7 @@ module github.com/deicod/convex-operator-api
 go 1.25
 
 require (
-	github.com/deicod/convex-operator v0.0.0-20251125040303-0cafacb53a4e
+	github.com/deicod/convex-operator v0.1.1
 	github.com/evanphx/json-patch/v5 v5.9.11
 	k8s.io/api v0.34.2
 	k8s.io/apimachinery v0.34.2
