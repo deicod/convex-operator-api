@@ -47,6 +47,13 @@ curl -s $AUTH "$BASE/api/v1/instances/default/demo/status"
 curl -s $AUTH "$BASE/api/v1/instances/watch"
 ```
 
+## Provisioning configuration (v2)
+
+- Enabled by default: `ENABLE_S3_PROVISIONING=true`, `ENABLE_DB_PROVISIONING=true`.
+- S3 (Rook-Ceph OBC): `S3_STORAGE_CLASS=rook-ceph-bucket`, `S3_SECRET_NAME_TEMPLATE=convex-{{name}}-s3`, `S3_ENDPOINT_SCHEME=https`, `S3_SECRET_KEYS=endpoint=endpoint,bucket=bucket,region=region,accessKeyId=accessKeyId,secretAccessKey=secretAccessKey`, `S3_PROVISION_TIMEOUT=2m`.
+- Postgres (existing CNPG cluster): `CNPG_HOST=pg-rw.postgres.svc.cluster.local`, `CNPG_PORT=5432`, `CNPG_ADMIN_SECRET=pg-rw-superuser`, `CNPG_JOB_NAMESPACE=postgres`, `CNPG_JOB_IMAGE=postgres:18-alpine`, `CNPG_SSLMODE=require`, `DB_SECRET_NAME_TEMPLATE=convex-{{name}}-db`, `CNPG_JOB_TIMEOUT=2m`.
+- All values can be overridden via flags or environment variables; set the toggles to `false` to skip provisioning when needed.
+
 ## TDD and pipeline expectations
 
 - Always keep `go test ./...`, `go vet ./...`, and `golangci-lint run ./...` green before merging.
