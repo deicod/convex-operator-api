@@ -59,36 +59,57 @@ func (p CNPGProvisioner) Provision(ctx context.Context, instanceName, namespace 
 	user := sanitizeDBIdentifier(instanceName)
 	dbName := user
 
-	password := ""
-	if p.PasswordGenerator != nil {
-		pw, err := p.PasswordGenerator()
-		if err != nil {
-			return DBResult{}, fmt.Errorf("generate password: %w", err)
+	canonicalSecretName := renderNameTemplate(p.Config.DBSecretNameTemplate, instanceName)
+	password := p.readExistingPassword(ctx, canonicalSecretName, namespace)
+	if password == "" {
+		if p.PasswordGenerator != nil {
+			pw, err := p.PasswordGenerator()
+			if err != nil {
+				return DBResult{}, fmt.Errorf("generate password: %w", err)
+			}
+			password = pw
+		} else {
+			password = randomPassword(32)
 		}
-		password = pw
-	} else {
-		password = randomPassword(32)
 	}
 
 	jobName := fmt.Sprintf("convex-%s-db-create", user)
 	createJob := buildCNPGJob(jobName, p.Config, user, dbName, password)
-	if err := p.Client.Create(ctx, createJob); err != nil {
-		if !apierrors.IsAlreadyExists(err) {
+	jobKey := types.NamespacedName{Name: jobName, Namespace: p.Config.JobNamespace}
+
+	existingJob := &batchv1.Job{}
+	jobExists := false
+	if err := p.Client.Get(ctx, jobKey, existingJob); err != nil {
+		if !apierrors.IsNotFound(err) {
 			return DBResult{}, err
+		}
+	} else {
+		jobExists = true
+		if jobPw := extractPasswordFromJob(existingJob); jobPw != "" {
+			password = jobPw
+		} else if password == "" {
+			return DBResult{}, fmt.Errorf("existing job %s/%s present but password is unknown; delete job or secret and retry", jobKey.Namespace, jobKey.Name)
 		}
 	}
 
-	if err := p.waitForJobCompletion(ctx, types.NamespacedName{Name: jobName, Namespace: p.Config.JobNamespace}); err != nil {
+	if !jobExists {
+		if err := p.Client.Create(ctx, createJob); err != nil {
+			if !apierrors.IsAlreadyExists(err) {
+				return DBResult{}, err
+			}
+		}
+	}
+
+	if err := p.waitForJobCompletion(ctx, jobKey); err != nil {
 		p.cleanupJob(jobName)
 		return DBResult{}, err
 	}
 
-	secretName := renderNameTemplate(p.Config.DBSecretNameTemplate, instanceName)
-	if err := p.writeDBSecret(ctx, secretName, namespace, user, password, dbName); err != nil {
+	if err := p.writeDBSecret(ctx, canonicalSecretName, namespace, user, password, dbName); err != nil {
 		return DBResult{}, err
 	}
 
-	return DBResult{SecretName: secretName}, nil
+	return DBResult{SecretName: canonicalSecretName}, nil
 }
 
 func (p CNPGProvisioner) writeDBSecret(ctx context.Context, name, namespace, user, password, dbName string) error {
@@ -130,6 +151,15 @@ func (p CNPGProvisioner) writeDBSecret(ctx context.Context, name, namespace, use
 		return err
 	}
 	return nil
+}
+
+func (p CNPGProvisioner) readExistingPassword(ctx context.Context, secretName, namespace string) string {
+	secret := &corev1.Secret{}
+	if err := p.Client.Get(ctx, types.NamespacedName{Name: secretName, Namespace: namespace}, secret); err != nil {
+		return ""
+	}
+	pw := secret.Data[dbSecretKeyPassword]
+	return string(pw)
 }
 
 func (p CNPGProvisioner) waitForJobCompletion(ctx context.Context, key types.NamespacedName) error {
@@ -177,6 +207,22 @@ func buildCNPGJob(name string, cfg config.CNPGConfig, user, dbName, password str
 	ttl := int32(300)
 	quotedUser := quoteIdent(user)
 	quotedDB := quoteIdent(dbName)
+	quotedPassword := quoteLiteral(password)
+	sql := fmt.Sprintf(`DO $body$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = %s) THEN
+		CREATE ROLE %s LOGIN PASSWORD %s;
+	ELSE
+		ALTER ROLE %s LOGIN PASSWORD %s;
+	END IF;
+
+	IF NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = %s) THEN
+		CREATE DATABASE %s OWNER %s;
+	END IF;
+
+	GRANT ALL PRIVILEGES ON DATABASE %s TO %s;
+END
+$body$;`, quoteLiteral(user), quotedUser, quotedPassword, quotedUser, quotedPassword, quoteLiteral(dbName), quotedDB, quotedUser, quotedDB, quotedUser)
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -194,7 +240,7 @@ func buildCNPGJob(name string, cfg config.CNPGConfig, user, dbName, password str
 							Image: cfg.JobImage,
 							Command: []string{
 								"sh", "-c",
-								fmt.Sprintf("psql \"host=%s port=%d user=$ADMIN_USER password=$ADMIN_PASSWORD sslmode=%s dbname=postgres\" -v ON_ERROR_STOP=1 <<'SQL'\nCREATE ROLE %s LOGIN PASSWORD '%s';\nCREATE DATABASE %s OWNER %s;\nGRANT ALL PRIVILEGES ON DATABASE %s TO %s;\nSQL\n", cfg.Host, cfg.Port, cfg.SSLMode, quotedUser, password, quotedDB, quotedUser, quotedDB, quotedUser),
+								fmt.Sprintf("psql \"host=%s port=%d user=$ADMIN_USER password=$ADMIN_PASSWORD sslmode=%s dbname=postgres\" -v ON_ERROR_STOP=1 <<'SQL'\n%s\nSQL\n", cfg.Host, cfg.Port, cfg.SSLMode, sql),
 							},
 							Env: []corev1.EnvVar{
 								{
@@ -266,4 +312,28 @@ func randomPassword(length int) string {
 func quoteIdent(ident string) string {
 	escaped := strings.ReplaceAll(ident, `"`, `""`)
 	return `"` + escaped + `"`
+}
+
+func quoteLiteral(lit string) string {
+	escaped := strings.ReplaceAll(lit, `'`, `''`)
+	return `'` + escaped + `'`
+}
+
+func extractPasswordFromJob(job *batchv1.Job) string {
+	if job == nil {
+		return ""
+	}
+	for _, c := range job.Spec.Template.Spec.Containers {
+		cmd := strings.Join(c.Command, " ")
+		if cmd == "" {
+			continue
+		}
+		// look for PASSWORD 'value'
+		re := regexp.MustCompile(`PASSWORD '([^']+)'`)
+		matches := re.FindStringSubmatch(cmd)
+		if len(matches) >= 2 {
+			return matches[1]
+		}
+	}
+	return ""
 }

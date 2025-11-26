@@ -89,6 +89,64 @@ func TestCNPGProvisionerCreatesJobAndSecret(t *testing.T) {
 	assertSecretValue(t, dbSecret, dbSecretKeySSLMode, "require")
 }
 
+func TestCNPGProvisionerReusesExistingJobPassword(t *testing.T) {
+	scheme := runtime.NewScheme()
+	mustAddJobScheme(t, scheme)
+
+	adminSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "pg-rw-superuser",
+			Namespace: "postgres",
+		},
+	}
+
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "convex-demo-db-create",
+			Namespace: "postgres",
+		},
+		Spec: batchv1.JobSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Command: []string{"sh", "-c", `CREATE ROLE "demo" LOGIN PASSWORD 'oldpw';`},
+						},
+					},
+				},
+			},
+		},
+		Status: batchv1.JobStatus{Succeeded: 1},
+	}
+
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(adminSecret, job).Build()
+	prov := CNPGProvisioner{
+		Client:       cli,
+		Config:       defaultCNPGConfig(),
+		PollInterval: 10 * time.Millisecond,
+		PasswordGenerator: func() (string, error) {
+			return "newpw", nil
+		},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	res, err := prov.Provision(ctx, "demo", "default")
+	if err != nil {
+		t.Fatalf("expected success, got %v", err)
+	}
+	if res.SecretName != "convex-demo-db" {
+		t.Fatalf("unexpected secret name: %s", res.SecretName)
+	}
+
+	var dbSecret corev1.Secret
+	if err := cli.Get(ctx, types.NamespacedName{Name: res.SecretName, Namespace: "default"}, &dbSecret); err != nil {
+		t.Fatalf("expected db secret, got error: %v", err)
+	}
+	assertSecretValue(t, dbSecret, dbSecretKeyPassword, "oldpw")
+}
+
 func TestCNPGProvisionerTimeout(t *testing.T) {
 	scheme := runtime.NewScheme()
 	mustAddJobScheme(t, scheme)

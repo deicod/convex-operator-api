@@ -272,11 +272,6 @@ func bindOBCAndSecret(ctx context.Context, t *testing.T, c client.Client, name, 
 	if err := c.Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, obc); err != nil {
 		t.Fatalf("failed to get obc: %v", err)
 	}
-	obc.Status.Phase = objectbucketv1alpha1.ObjectBucketClaimStatusPhaseBound
-	if err := c.Update(ctx, obc); err != nil {
-		t.Fatalf("failed to update obc: %v", err)
-	}
-
 	sourceSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -293,6 +288,11 @@ func bindOBCAndSecret(ctx context.Context, t *testing.T, c client.Client, name, 
 	}
 	if err := c.Create(ctx, sourceSecret); err != nil {
 		t.Fatalf("failed to create source secret: %v", err)
+	}
+
+	obc.Status.Phase = objectbucketv1alpha1.ObjectBucketClaimStatusPhaseBound
+	if err := c.Update(ctx, obc); err != nil {
+		t.Fatalf("failed to update obc: %v", err)
 	}
 }
 
