@@ -369,23 +369,23 @@ Goal: Secure HTTP access and ensure least-privilege cluster permissions.
 
 Goal: Ship manifests and explain how to use the backend in and out of the cluster.
 
-- [ ] Add Kustomize configuration for the API backend:
-  - [ ] Deployment YAML using the built image and configuration env/flags.
-  - [ ] Service YAML exposing the API on a ClusterIP.
-  - [ ] RBAC YAML defining ServiceAccount, Role/ClusterRole, and bindings.
+- [x] Add Kustomize configuration for the API backend:
+  - [x] Deployment YAML using the built image and configuration env/flags.
+  - [x] Service YAML exposing the API on a ClusterIP.
+  - [x] RBAC YAML defining ServiceAccount, Role/ClusterRole, and bindings.
 - [ ] Add Gateway API integration examples:
-  - [ ] HTTPRoute mapping an internal host (example value: `convex-operator-api.internal.example.com`) to the API Service.
-  - [ ] Show how to attach to an existing GatewayClass (for example `nginx` for NGINX Gateway Fabric).
+  - [x] HTTPRoute mapping an internal host (example value: `convex-operator-api.internal.example.com`) to the API Service.
+  - [x] Show how to attach to an existing GatewayClass (for example `nginx` for NGINX Gateway Fabric).
 - [ ] Write documentation (for example `docs/api-backend.md`):
-  - [ ] Describe the purpose of the API and its relationship to the operator.
-  - [ ] Document in-cluster deployment (using Kustomize).
-  - [ ] Document out-of-cluster usage with kubeconfig and flags.
-  - [ ] Provide sample curl commands for common operations.
-  - [ ] Document the TDD and tooling expectations (tests and linting must pass before merging).
+  - [x] Describe the purpose of the API and its relationship to the operator.
+  - [x] Document in-cluster deployment (using Kustomize).
+  - [x] Document out-of-cluster usage with kubeconfig and flags.
+  - [x] Provide sample curl commands for common operations.
+  - [x] Document the TDD and tooling expectations (tests and linting must pass before merging).
 - [ ] Ensure CI is enforcing the full pipeline for this service:
-  - [ ] `go test ./...`
-  - [ ] `go vet ./...`
-  - [ ] `golangci-lint run ./...`
-  - [ ] Container build and (optionally) push steps to a registry.
+  - [x] `go test ./...`
+  - [x] `go vet ./...`
+  - [x] `golangci-lint run ./...`
+  - [x] Container build and (optionally) push steps to a registry.
 
 This SPEC and task list are ordered to put tooling, static analysis, and TDD at the front so that all subsequent work is built with tests and linting in place from the beginning.

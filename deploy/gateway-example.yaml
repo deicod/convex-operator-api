@@ -1,0 +1,30 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: convex-operator-api
+  namespace: convex-operator-api
+spec:
+  gatewayClassName: nginx
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: convex-operator-api.internal.example.com
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: convex-operator-api
+  namespace: convex-operator-api
+spec:
+  parentRefs:
+    - name: convex-operator-api
+  hostnames:
+    - convex-operator-api.internal.example.com
+  rules:
+    - backendRefs:
+        - name: convex-operator-api
+          port: 8080
