@@ -11,7 +11,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN go build -o /out/convex-operator-api ./cmd/api
+RUN mkdir -p /out && go build -o /out/convex-operator-api ./cmd/api
 
 FROM gcr.io/distroless/static:nonroot
 COPY --from=build /out/convex-operator-api /usr/local/bin/convex-operator-api
