@@ -72,32 +72,32 @@ func (p S3Provisioner) Provision(ctx context.Context, instanceName, namespace st
 
 	boundOBC, err := p.waitForBound(ctx, key)
 	if err != nil {
-		p.cleanupCreatedOBC(ctx, created, obcName, namespace)
+		p.cleanupCreatedOBC(created, obcName, namespace)
 		return S3Result{}, err
 	}
 
 	sourceSecretName := boundOBC.Name
 	sourceSecret := &corev1.Secret{}
 	if err := p.Client.Get(ctx, types.NamespacedName{Namespace: namespace, Name: sourceSecretName}, sourceSecret); err != nil {
-		p.cleanupCreatedOBC(ctx, created, obcName, namespace)
+		p.cleanupCreatedOBC(created, obcName, namespace)
 		return S3Result{}, fmt.Errorf("fetching object bucket secret: %w", err)
 	}
 
 	endpoint, bucket, region, accessKeyID, secretAccessKey, err := extractBucketSecret(sourceSecret)
 	if err != nil {
-		p.cleanupCreatedOBC(ctx, created, obcName, namespace)
+		p.cleanupCreatedOBC(created, obcName, namespace)
 		return S3Result{}, err
 	}
 
 	canonicalEndpoint := buildEndpoint(p.Config.EndpointScheme, endpoint.Host, endpoint.Port)
 	if canonicalEndpoint == "" {
-		p.cleanupCreatedOBC(ctx, created, obcName, namespace)
+		p.cleanupCreatedOBC(created, obcName, namespace)
 		return S3Result{}, fmt.Errorf("bucket endpoint host is empty in secret %s/%s", namespace, sourceSecretName)
 	}
 
 	canonicalSecretName := renderNameTemplate(p.Config.SecretNameTemplate, instanceName)
 	if err := p.writeCanonicalSecret(ctx, canonicalSecretName, namespace, canonicalEndpoint, bucket, region, accessKeyID, secretAccessKey); err != nil {
-		p.cleanupCreatedOBC(ctx, created, obcName, namespace)
+		p.cleanupCreatedOBC(created, obcName, namespace)
 		return S3Result{}, err
 	}
 
@@ -169,7 +169,7 @@ func (p S3Provisioner) writeCanonicalSecret(ctx context.Context, name, namespace
 	return nil
 }
 
-func (p S3Provisioner) cleanupCreatedOBC(ctx context.Context, created bool, name, namespace string) {
+func (p S3Provisioner) cleanupCreatedOBC(created bool, name, namespace string) {
 	if !created {
 		return
 	}

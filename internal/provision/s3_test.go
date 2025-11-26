@@ -43,8 +43,8 @@ func TestS3ProvisionerCreatesAndBinds(t *testing.T) {
 		}{res: res, err: err}
 	}()
 
-	waitForOBC(t, ctx, cli, "demo", "default")
-	bindOBCAndSecret(t, ctx, cli, "demo", "default", "s3.example.com", "443", "eu-central-1")
+	waitForOBC(ctx, t, cli, "demo", "default")
+	bindOBCAndSecret(ctx, t, cli, "demo", "default", "s3.example.com", "443", "eu-central-1")
 
 	out := <-resultCh
 	if out.err != nil {
@@ -166,7 +166,7 @@ func TestS3ProvisionerCleansUpOnSecretError(t *testing.T) {
 		resultCh <- err
 	}()
 
-	waitForOBC(t, ctx, cli, "demo", "default")
+	waitForOBC(ctx, t, cli, "demo", "default")
 	// Bind OBC but leave BUCKET_HOST missing to trigger error.
 	var obc objectbucketv1alpha1.ObjectBucketClaim
 	if err := cli.Get(ctx, types.NamespacedName{Name: "demo", Namespace: "default"}, &obc); err != nil {
@@ -251,7 +251,7 @@ func defaultConfig() config.S3Config {
 	}
 }
 
-func waitForOBC(t *testing.T, ctx context.Context, c client.Client, name, namespace string) {
+func waitForOBC(ctx context.Context, t *testing.T, c client.Client, name, namespace string) {
 	t.Helper()
 	var lastErr error
 	for i := 0; i < 50; i++ {
@@ -266,7 +266,7 @@ func waitForOBC(t *testing.T, ctx context.Context, c client.Client, name, namesp
 	t.Fatalf("obc %s/%s not created: %v", namespace, name, lastErr)
 }
 
-func bindOBCAndSecret(t *testing.T, ctx context.Context, c client.Client, name, namespace, host, port, region string) {
+func bindOBCAndSecret(ctx context.Context, t *testing.T, c client.Client, name, namespace, host, port, region string) {
 	t.Helper()
 	obc := &objectbucketv1alpha1.ObjectBucketClaim{}
 	if err := c.Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, obc); err != nil {
