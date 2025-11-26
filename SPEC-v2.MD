@@ -113,9 +113,9 @@
   - [x] Add config fields/env parsing for S3 and CNPG defaults/overrides.
   - [x] Document default cluster assumptions in README/docs.
 - Milestone 2: S3 provisioning
-  - [ ] Implement OBC creator/waiter + canonical S3 secret writer.
-  - [ ] Inject `backend.s3` references into `ConvexInstance` spec.
-  - [ ] Unit tests for success, timeout, existing bucket, and cleanup on failure.
+  - [x] Implement OBC creator/waiter + canonical S3 secret writer.
+  - [x] Inject `backend.s3` references into `ConvexInstance` spec.
+  - [x] Unit tests for success, timeout, existing bucket, and cleanup on failure.
 - Milestone 3: Postgres provisioning
   - [ ] Implement password generation and canonical DB secret writer.
   - [ ] Implement CNPG Job templates (create/drop) and waiter with timeouts.
