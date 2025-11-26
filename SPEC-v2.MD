@@ -117,10 +117,10 @@
   - [x] Inject `backend.s3` references into `ConvexInstance` spec.
   - [x] Unit tests for success, timeout, existing bucket, and cleanup on failure.
 - Milestone 3: Postgres provisioning
-  - [ ] Implement password generation and canonical DB secret writer.
-  - [ ] Implement CNPG Job templates (create/drop) and waiter with timeouts.
-  - [ ] Inject `backend.db` references into `ConvexInstance` spec.
-  - [ ] Unit tests for create/drop, job failure, and cleanup on failure.
+  - [x] Implement password generation and canonical DB secret writer.
+  - [x] Implement CNPG Job templates (create/drop) and waiter with timeouts.
+  - [x] Inject `backend.db` references into `ConvexInstance` spec.
+  - [x] Unit tests for create/drop, job failure, and cleanup on failure.
 - Milestone 4: Lifecycle integration
   - [ ] Wire provisioning into `POST /api/v1/instances` before CR creation with compensating cleanup.
   - [ ] Wire best-effort cleanup into `DELETE /api/v1/instances/{ns}/{name}`.
