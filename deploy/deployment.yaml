@@ -16,7 +16,7 @@ spec:
       containers:
         - name: api
           image: ghcr.io/your-org/convex-operator-api:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           env:
             - name: LISTEN_ADDRESS
               value: ":8080"
