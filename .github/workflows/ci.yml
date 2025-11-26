@@ -8,7 +8,10 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runner: [ubuntu-latest, self-hosted]
+    runs-on: ${{ matrix.runner == 'self-hosted' && fromJSON('["self-hosted","linux"]') || matrix.runner }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
