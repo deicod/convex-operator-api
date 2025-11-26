@@ -175,6 +175,8 @@ func (p CNPGProvisioner) pollInterval() time.Duration {
 func buildCNPGJob(name string, cfg config.CNPGConfig, user, dbName, password string) *batchv1.Job {
 	backoff := int32(0)
 	ttl := int32(300)
+	quotedUser := quoteIdent(user)
+	quotedDB := quoteIdent(dbName)
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -192,7 +194,7 @@ func buildCNPGJob(name string, cfg config.CNPGConfig, user, dbName, password str
 							Image: cfg.JobImage,
 							Command: []string{
 								"sh", "-c",
-								fmt.Sprintf("psql \"host=%s port=%d user=$ADMIN_USER password=$ADMIN_PASSWORD sslmode=%s dbname=postgres\" -v ON_ERROR_STOP=1 <<'SQL'\nCREATE ROLE %s LOGIN PASSWORD '%s';\nCREATE DATABASE %s OWNER %s;\nGRANT ALL PRIVILEGES ON DATABASE %s TO %s;\nSQL\n", cfg.Host, cfg.Port, cfg.SSLMode, user, password, dbName, user, dbName, user),
+								fmt.Sprintf("psql \"host=%s port=%d user=$ADMIN_USER password=$ADMIN_PASSWORD sslmode=%s dbname=postgres\" -v ON_ERROR_STOP=1 <<'SQL'\nCREATE ROLE %s LOGIN PASSWORD '%s';\nCREATE DATABASE %s OWNER %s;\nGRANT ALL PRIVILEGES ON DATABASE %s TO %s;\nSQL\n", cfg.Host, cfg.Port, cfg.SSLMode, quotedUser, password, quotedDB, quotedUser, quotedDB, quotedUser),
 							},
 							Env: []corev1.EnvVar{
 								{
@@ -259,4 +261,9 @@ func randomPassword(length int) string {
 		b[i] = charset[n.Int64()]
 	}
 	return string(b)
+}
+
+func quoteIdent(ident string) string {
+	escaped := strings.ReplaceAll(ident, `"`, `""`)
+	return `"` + escaped + `"`
 }

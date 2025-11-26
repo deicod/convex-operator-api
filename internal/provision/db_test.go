@@ -2,11 +2,12 @@ package provision
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/deicod/convex-operator/api/v1alpha1"
 	"github.com/deicod/convex-operator-api/internal/config"
+	"github.com/deicod/convex-operator/api/v1alpha1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -50,21 +51,28 @@ func TestCNPGProvisionerCreatesJobAndSecret(t *testing.T) {
 		err error
 	}, 1)
 	go func() {
-		res, err := prov.Provision(ctx, "demo", "default")
+		res, err := prov.Provision(ctx, "demo-prod", "default")
 		resultCh <- struct {
 			res DBResult
 			err error
 		}{res: res, err: err}
 	}()
 
-	job := waitForJob(ctx, t, cli, "convex-demo-db-create", "postgres")
+	job := waitForJob(ctx, t, cli, "convex-demo-prod-db-create", "postgres")
+	if len(job.Spec.Template.Spec.Containers) == 0 {
+		t.Fatalf("expected job container")
+	}
+	cmd := strings.Join(job.Spec.Template.Spec.Containers[0].Command, " ")
+	if !strings.Contains(cmd, `CREATE ROLE "demo-prod"`) || !strings.Contains(cmd, `CREATE DATABASE "demo-prod" OWNER "demo-prod"`) {
+		t.Fatalf("expected quoted identifiers in job command, got: %s", cmd)
+	}
 	markJobSucceeded(ctx, t, cli, job)
 
 	out := <-resultCh
 	if out.err != nil {
 		t.Fatalf("expected success, got %v", out.err)
 	}
-	if out.res.SecretName != "convex-demo-db" {
+	if out.res.SecretName != "convex-demo-prod-db" {
 		t.Fatalf("unexpected secret name: %s", out.res.SecretName)
 	}
 
@@ -72,10 +80,10 @@ func TestCNPGProvisionerCreatesJobAndSecret(t *testing.T) {
 	if err := cli.Get(ctx, types.NamespacedName{Name: out.res.SecretName, Namespace: "default"}, &dbSecret); err != nil {
 		t.Fatalf("expected db secret, got error: %v", err)
 	}
-	assertSecretValue(t, dbSecret, dbSecretKeyURL, "postgres://demo:secretpw@pg-rw.postgres.svc.cluster.local:5432/demo?sslmode=require")
-	assertSecretValue(t, dbSecret, dbSecretKeyUser, "demo")
+	assertSecretValue(t, dbSecret, dbSecretKeyURL, "postgres://demo-prod:secretpw@pg-rw.postgres.svc.cluster.local:5432/demo-prod?sslmode=require")
+	assertSecretValue(t, dbSecret, dbSecretKeyUser, "demo-prod")
 	assertSecretValue(t, dbSecret, dbSecretKeyPassword, "secretpw")
-	assertSecretValue(t, dbSecret, dbSecretKeyName, "demo")
+	assertSecretValue(t, dbSecret, dbSecretKeyName, "demo-prod")
 	assertSecretValue(t, dbSecret, dbSecretKeyHost, "pg-rw.postgres.svc.cluster.local")
 	assertSecretValue(t, dbSecret, dbSecretKeyPort, "5432")
 	assertSecretValue(t, dbSecret, dbSecretKeySSLMode, "require")
