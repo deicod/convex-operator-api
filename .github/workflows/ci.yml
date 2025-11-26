@@ -9,6 +9,7 @@ on:
 jobs:
   test:
     strategy:
+      fail-fast: false
       matrix:
         runner: [ubuntu-latest, self-hosted]
     runs-on: ${{ matrix.runner == 'self-hosted' && fromJSON('["self-hosted","linux"]') || matrix.runner }}
