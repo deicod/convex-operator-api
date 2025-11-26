@@ -9,6 +9,7 @@ import (
 
 	"github.com/deicod/convex-operator-api/internal/config"
 	"github.com/deicod/convex-operator/api/v1alpha1"
+	objectbucketv1alpha1 "github.com/kube-object-storage/lib-bucket-provisioner/pkg/apis/objectbucket.io/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
@@ -55,6 +56,9 @@ func (f Factory) Client(cfg config.Config) (client.WithWatch, *rest.Config, erro
 		return nil, nil, err
 	}
 	if err := v1alpha1.AddToScheme(scheme); err != nil {
+		return nil, nil, err
+	}
+	if err := objectbucketv1alpha1.AddToScheme(scheme); err != nil {
 		return nil, nil, err
 	}
 

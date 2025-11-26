@@ -5,6 +5,7 @@ go 1.25
 require (
 	github.com/deicod/convex-operator v0.1.1
 	github.com/evanphx/json-patch/v5 v5.9.11
+	github.com/kube-object-storage/lib-bucket-provisioner v0.0.0-20221122204822-d1a8c34382f1
 	k8s.io/api v0.34.2
 	k8s.io/apimachinery v0.34.2
 	k8s.io/client-go v0.34.2
