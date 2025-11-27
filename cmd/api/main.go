@@ -10,6 +10,7 @@ import (
 	"github.com/deicod/convex-operator-api/internal/config"
 	"github.com/deicod/convex-operator-api/internal/httpapi"
 	"github.com/deicod/convex-operator-api/internal/kube"
+	"github.com/deicod/convex-operator-api/internal/provision"
 )
 
 func main() {
@@ -30,6 +31,26 @@ func main() {
 	}
 
 	instanceStore := kube.InstanceStore{Client: kubeClient}
+	var s3Prov *provision.S3Provisioner
+	if cfg.S3.Enabled {
+		s3Prov = &provision.S3Provisioner{
+			Client: kubeClient,
+			Config: cfg.S3,
+		}
+	}
+	var dbProv *provision.CNPGProvisioner
+	if cfg.CNPG.Enabled {
+		dbProv = &provision.CNPGProvisioner{
+			Client: kubeClient,
+			Config: cfg.CNPG,
+		}
+	}
+	instanceService := provision.LifecycleService{
+		Store: instanceStore,
+		S3:    s3Prov,
+		DB:    dbProv,
+		Log:   log.Default(),
+	}
 	statusService := httpapi.StatusServiceAdapter{
 		Reader:       kube.StatusReader{Client: kubeClient},
 		ReadyCounter: kube.PodReadinessCounter{Client: kubeClient},
@@ -38,7 +59,7 @@ func main() {
 	upgradeService := httpapi.UpgradeServiceAdapter{Updater: kube.UpgradeSpecUpdater{Client: kubeClient}}
 	instanceWatcher := kube.InstanceWatcher{Client: kubeClient}
 
-	mux := httpapi.NewMux(readyChecker, instanceStore, statusService, eventsService, upgradeService, instanceWatcher, cfg.AllowedNamespaces)
+	mux := httpapi.NewMux(readyChecker, instanceService, statusService, eventsService, upgradeService, instanceWatcher, cfg.AllowedNamespaces)
 
 	protected := httpapi.AuthMiddleware{Token: cfg.AuthToken}.Wrap(mux)
 	handler := httpapi.HealthBypassMiddleware{

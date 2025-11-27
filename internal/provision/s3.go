@@ -107,6 +107,24 @@ func (p S3Provisioner) Provision(ctx context.Context, instanceName, namespace st
 	}, nil
 }
 
+// Cleanup deletes the OBC and canonical secret on a best-effort basis.
+func (p S3Provisioner) Cleanup(ctx context.Context, instanceName, namespace string) {
+	secretName := renderNameTemplate(p.Config.SecretNameTemplate, instanceName)
+	_ = client.IgnoreNotFound(p.Client.Delete(ctx, &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: namespace,
+		},
+	}))
+
+	_ = client.IgnoreNotFound(p.Client.Delete(ctx, &objectbucketv1alpha1.ObjectBucketClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      instanceName,
+			Namespace: namespace,
+		},
+	}))
+}
+
 func (p S3Provisioner) waitForBound(ctx context.Context, key types.NamespacedName) (*objectbucketv1alpha1.ObjectBucketClaim, error) {
 	timeout := p.Config.ProvisionTimeout
 	if timeout <= 0 {

@@ -122,9 +122,9 @@
   - [x] Inject `backend.db` references into `ConvexInstance` spec.
   - [x] Unit tests for create/drop, job failure, and cleanup on failure.
 - Milestone 4: Lifecycle integration
-  - [ ] Wire provisioning into `POST /api/v1/instances` before CR creation with compensating cleanup.
-  - [ ] Wire best-effort cleanup into `DELETE /api/v1/instances/{ns}/{name}`.
-  - [ ] Handle partial states (e.g., delete when bucket already gone).
+  - [x] Wire provisioning into `POST /api/v1/instances` before CR creation with compensating cleanup.
+  - [x] Wire best-effort cleanup into `DELETE /api/v1/instances/{ns}/{name}`.
+  - [x] Handle partial states (e.g., delete when bucket already gone).
 - Milestone 5: RBAC and deploy
   - [ ] Update `deploy/` manifests with required RBAC (OBC, Jobs, Secrets across namespaces).
   - [ ] Add service accounts for Postgres Jobs and adjust Helm/Kustomize templates.
