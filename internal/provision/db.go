@@ -253,6 +253,7 @@ $body$;`, quoteLiteral(user), quotedUser, quotedPassword, quotedUser, quotedPass
 			TTLSecondsAfterFinished: &ttl,
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
+					ServiceAccountName: cfg.JobServiceAccount,
 					RestartPolicy: corev1.RestartPolicyNever,
 					Containers: []corev1.Container{
 						{
@@ -311,6 +312,7 @@ $body$;`, quoteLiteral(user), quoteLiteral(user), quoteLiteral(user))
 			TTLSecondsAfterFinished: &ttl,
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
+					ServiceAccountName: cfg.JobServiceAccount,
 					RestartPolicy: corev1.RestartPolicyNever,
 					Containers: []corev1.Container{
 						{

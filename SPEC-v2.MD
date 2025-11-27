@@ -126,8 +126,8 @@
   - [x] Wire best-effort cleanup into `DELETE /api/v1/instances/{ns}/{name}`.
   - [x] Handle partial states (e.g., delete when bucket already gone).
 - Milestone 5: RBAC and deploy
-  - [ ] Update `deploy/` manifests with required RBAC (OBC, Jobs, Secrets across namespaces).
-  - [ ] Add service accounts for Postgres Jobs and adjust Helm/Kustomize templates.
+  - [x] Update `deploy/` manifests with required RBAC (OBC, Jobs, Secrets across namespaces).
+  - [x] Add service accounts for Postgres Jobs and adjust Helm/Kustomize templates.
 - Milestone 6: Docs and ops
   - [ ] Update docs with configuration, defaults, and example curl flows showing provisioned secrets.
   - [ ] Add runbook notes for manual cleanup and troubleshooting (OBC stuck, Job failed).

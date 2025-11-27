@@ -57,6 +57,9 @@ func TestParseDefaults(t *testing.T) {
 	if cfg.CNPG.JobNamespace != "postgres" {
 		t.Fatalf("unexpected cnpg job namespace: %q", cfg.CNPG.JobNamespace)
 	}
+	if cfg.CNPG.JobServiceAccount != "convex-operator-api-db" {
+		t.Fatalf("unexpected cnpg job serviceaccount: %q", cfg.CNPG.JobServiceAccount)
+	}
 	if cfg.CNPG.JobImage != "postgres:18-alpine" {
 		t.Fatalf("unexpected cnpg job image: %q", cfg.CNPG.JobImage)
 	}
@@ -73,27 +76,28 @@ func TestParseDefaults(t *testing.T) {
 
 func TestParseEnvironmentOverridesDefaults(t *testing.T) {
 	env := map[string]string{
-		"LISTEN_ADDRESS":          "127.0.0.1:9999",
-		"MODE":                    ModeOutOfCluster,
-		"KUBECONFIG":              "/tmp/kubeconfig",
-		"KUBECONTEXT":             "dev",
-		"ALLOWED_NAMESPACES":      "a,b , c",
-		"CONVEX_API_AUTH_TOKEN":   "secret",
-		"S3_STORAGE_CLASS":        "custom-class",
-		"S3_SECRET_NAME_TEMPLATE": "custom-{{name}}-s3",
-		"S3_ENDPOINT_SCHEME":      "http",
-		"S3_PROVISION_TIMEOUT":    "30s",
-		"S3_SECRET_KEYS":          "endpoint=url,bucket=bkt,region=eu,accessKeyId=ak,secretAccessKey=sk",
-		"ENABLE_S3_PROVISIONING":  "false",
-		"CNPG_HOST":               "db.example",
-		"CNPG_PORT":               "6543",
-		"CNPG_ADMIN_SECRET":       "admin-secret",
-		"CNPG_JOB_NAMESPACE":      "pg-jobs",
-		"CNPG_JOB_IMAGE":          "postgres:17-alpine",
-		"CNPG_SSLMODE":            "verify-full",
-		"DB_SECRET_NAME_TEMPLATE": "db-{{name}}",
-		"CNPG_JOB_TIMEOUT":        "45s",
-		"ENABLE_DB_PROVISIONING":  "false",
+		"LISTEN_ADDRESS":           "127.0.0.1:9999",
+		"MODE":                     ModeOutOfCluster,
+		"KUBECONFIG":               "/tmp/kubeconfig",
+		"KUBECONTEXT":              "dev",
+		"ALLOWED_NAMESPACES":       "a,b , c",
+		"CONVEX_API_AUTH_TOKEN":    "secret",
+		"S3_STORAGE_CLASS":         "custom-class",
+		"S3_SECRET_NAME_TEMPLATE":  "custom-{{name}}-s3",
+		"S3_ENDPOINT_SCHEME":       "http",
+		"S3_PROVISION_TIMEOUT":     "30s",
+		"S3_SECRET_KEYS":           "endpoint=url,bucket=bkt,region=eu,accessKeyId=ak,secretAccessKey=sk",
+		"ENABLE_S3_PROVISIONING":   "false",
+		"CNPG_HOST":                "db.example",
+		"CNPG_PORT":                "6543",
+		"CNPG_ADMIN_SECRET":        "admin-secret",
+		"CNPG_JOB_NAMESPACE":       "pg-jobs",
+		"CNPG_JOB_SERVICE_ACCOUNT": "pg-job-sa",
+		"CNPG_JOB_IMAGE":           "postgres:17-alpine",
+		"CNPG_SSLMODE":             "verify-full",
+		"DB_SECRET_NAME_TEMPLATE":  "db-{{name}}",
+		"CNPG_JOB_TIMEOUT":         "45s",
+		"ENABLE_DB_PROVISIONING":   "false",
 	}
 
 	cfg, err := Parse(nil, mapLookup(env))
@@ -150,6 +154,9 @@ func TestParseEnvironmentOverridesDefaults(t *testing.T) {
 	if cfg.CNPG.JobNamespace != "pg-jobs" {
 		t.Fatalf("unexpected cnpg job namespace: %q", cfg.CNPG.JobNamespace)
 	}
+	if cfg.CNPG.JobServiceAccount != "pg-job-sa" {
+		t.Fatalf("unexpected cnpg job serviceaccount: %q", cfg.CNPG.JobServiceAccount)
+	}
 	if cfg.CNPG.JobImage != "postgres:17-alpine" {
 		t.Fatalf("unexpected cnpg job image: %q", cfg.CNPG.JobImage)
 	}
@@ -192,6 +199,7 @@ func TestFlagsOverrideEnvironment(t *testing.T) {
 		"-s3-secret-keys=endpoint=flag-endpoint,bucket=flag-bucket,accessKeyId=flag-ak,secretAccessKey=flag-sk,region=flag-region",
 		"-cnpg-host=flag-host",
 		"-cnpg-port=7777",
+		"-cnpg-job-service-account=flag-sa",
 		"-enable-db-provisioning",
 	}
 
@@ -233,6 +241,9 @@ func TestFlagsOverrideEnvironment(t *testing.T) {
 	}
 	if cfg.CNPG.Host != "flag-host" || cfg.CNPG.Port != 7777 {
 		t.Fatalf("unexpected cnpg host/port: %s:%d", cfg.CNPG.Host, cfg.CNPG.Port)
+	}
+	if cfg.CNPG.JobServiceAccount != "flag-sa" {
+		t.Fatalf("unexpected cnpg job serviceaccount: %q", cfg.CNPG.JobServiceAccount)
 	}
 }
 

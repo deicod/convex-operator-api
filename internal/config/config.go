@@ -56,6 +56,7 @@ type CNPGConfig struct {
 	Port                 int
 	AdminSecret          string
 	JobNamespace         string
+	JobServiceAccount    string
 	JobImage             string
 	SSLMode              string
 	DBSecretNameTemplate string
@@ -92,6 +93,7 @@ func Parse(args []string, getenv func(string) string) (Config, error) {
 			Port:                 5432,
 			AdminSecret:          "pg-rw-superuser",
 			JobNamespace:         "postgres",
+			JobServiceAccount:    "convex-operator-api-db",
 			JobImage:             "postgres:18-alpine",
 			SSLMode:              "require",
 			DBSecretNameTemplate: "convex-{{name}}-db",
@@ -119,6 +121,7 @@ func Parse(args []string, getenv func(string) string) (Config, error) {
 	cnpgPortEnv := getenv("CNPG_PORT")
 	cnpgAdminSecretEnv := getenv("CNPG_ADMIN_SECRET")
 	cnpgJobNamespaceEnv := getenv("CNPG_JOB_NAMESPACE")
+	cnpgJobServiceAccountEnv := getenv("CNPG_JOB_SERVICE_ACCOUNT")
 	cnpgJobImageEnv := getenv("CNPG_JOB_IMAGE")
 	cnpgSSLModeEnv := getenv("CNPG_SSLMODE")
 	cnpgDBSecretTemplateEnv := getenv("DB_SECRET_NAME_TEMPLATE")
@@ -164,6 +167,9 @@ func Parse(args []string, getenv func(string) string) (Config, error) {
 	}
 	if v := cnpgJobNamespaceEnv; v != "" {
 		cfg.CNPG.JobNamespace = v
+	}
+	if v := cnpgJobServiceAccountEnv; v != "" {
+		cfg.CNPG.JobServiceAccount = v
 	}
 	if v := cnpgJobImageEnv; v != "" {
 		cfg.CNPG.JobImage = v
@@ -219,6 +225,7 @@ func Parse(args []string, getenv func(string) string) (Config, error) {
 	fs.IntVar(&cfg.CNPG.Port, "cnpg-port", cfg.CNPG.Port, "CNPG port")
 	fs.StringVar(&cfg.CNPG.AdminSecret, "cnpg-admin-secret", cfg.CNPG.AdminSecret, "CNPG admin secret name")
 	fs.StringVar(&cfg.CNPG.JobNamespace, "cnpg-job-namespace", cfg.CNPG.JobNamespace, "namespace for CNPG provisioning Jobs")
+	fs.StringVar(&cfg.CNPG.JobServiceAccount, "cnpg-job-service-account", cfg.CNPG.JobServiceAccount, "service account for CNPG Jobs")
 	fs.StringVar(&cfg.CNPG.JobImage, "cnpg-job-image", cfg.CNPG.JobImage, "container image for CNPG Jobs")
 	fs.StringVar(&cfg.CNPG.SSLMode, "cnpg-sslmode", cfg.CNPG.SSLMode, "SSL mode for Postgres connection (require/verify-ca/verify-full/disable)")
 	fs.StringVar(&cfg.CNPG.DBSecretNameTemplate, "db-secret-name-template", cfg.CNPG.DBSecretNameTemplate, "go template for canonical DB secret name ({{name}} = instance)")
@@ -283,6 +290,9 @@ func (c Config) validate() error {
 		}
 		if c.CNPG.JobNamespace == "" {
 			return fmt.Errorf("cnpg job namespace is required when DB provisioning is enabled")
+		}
+		if c.CNPG.JobServiceAccount == "" {
+			return fmt.Errorf("cnpg job service account is required when DB provisioning is enabled")
 		}
 		if c.CNPG.JobImage == "" {
 			return fmt.Errorf("cnpg job image is required when DB provisioning is enabled")
