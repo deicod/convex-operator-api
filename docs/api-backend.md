@@ -58,6 +58,22 @@ curl -s $AUTH "$BASE/api/v1/instances/watch"
 - Postgres (existing CNPG cluster): `CNPG_HOST=pg-rw.postgres.svc.cluster.local`, `CNPG_PORT=5432`, `CNPG_ADMIN_SECRET=pg-rw-superuser`, `CNPG_JOB_NAMESPACE=postgres`, `CNPG_JOB_SERVICE_ACCOUNT=convex-operator-api-db`, `CNPG_JOB_IMAGE=postgres:18-alpine`, `CNPG_SSLMODE=require`, `DB_SECRET_NAME_TEMPLATE=convex-{{name}}-db`, `CNPG_JOB_TIMEOUT=2m`.
 - All values can be overridden via flags or environment variables; set the toggles to `false` to skip provisioning when needed.
 
+## Runbook: provisioning diagnostics
+
+- Bucket provisioning stuck (OBC not Bound):
+  - Check OBC status: `kubectl -n <ns> get obc <instance> -o yaml`.
+  - Inspect provisioner pod logs in `rook-ceph` namespace.
+  - Ensure StorageClass `rook-ceph-bucket` exists and objectStore `s3` is healthy.
+  - Retry by deleting the OBC; the API will recreate on next POST.
+- DB job fails:
+  - Inspect Job: `kubectl -n postgres describe job convex-<instance>-db-create`.
+  - Check Pod logs: `kubectl -n postgres logs job/convex-<instance>-db-create`.
+  - Verify admin secret `pg-rw-superuser` is readable by SA `convex-operator-api-db`.
+  - If password drift occurred, delete the canonical DB secret in the instance namespace and rerun POST.
+- Cleanup:
+  - Delete instance: `curl -s $AUTH -X DELETE "$BASE/api/v1/instances/<ns>/<name>"`.
+  - If bucket/DB linger, delete OBC and run drop job manually: `kubectl -n postgres create job --from=job/convex-<name>-db-drop manual-drop`.
+
 ## TDD and pipeline expectations
 
 - Always keep `go test ./...`, `go vet ./...`, and `golangci-lint run ./...` green before merging.

@@ -129,5 +129,5 @@
   - [x] Update `deploy/` manifests with required RBAC (OBC, Jobs, Secrets across namespaces).
   - [x] Add service accounts for Postgres Jobs and adjust Helm/Kustomize templates.
 - Milestone 6: Docs and ops
-  - [ ] Update docs with configuration, defaults, and example curl flows showing provisioned secrets.
-  - [ ] Add runbook notes for manual cleanup and troubleshooting (OBC stuck, Job failed).
+  - [x] Update docs with configuration, defaults, and example curl flows showing provisioned secrets.
+  - [x] Add runbook notes for manual cleanup and troubleshooting (OBC stuck, Job failed).
