@@ -18,11 +18,11 @@ type stubStore struct {
 	deleted   []string
 }
 
-func (s *stubStore) ListConvexInstances(_ context.Context, namespace string) ([]v1alpha1.ConvexInstance, error) {
+func (s *stubStore) ListConvexInstances(_ context.Context, _ string) ([]v1alpha1.ConvexInstance, error) {
 	return nil, nil
 }
 
-func (s *stubStore) GetConvexInstance(_ context.Context, namespace, name string) (*v1alpha1.ConvexInstance, error) {
+func (s *stubStore) GetConvexInstance(_ context.Context, _, _ string) (*v1alpha1.ConvexInstance, error) {
 	return nil, nil
 }
 
@@ -34,7 +34,7 @@ func (s *stubStore) CreateConvexInstance(_ context.Context, obj *v1alpha1.Convex
 	return nil
 }
 
-func (s *stubStore) UpdateConvexInstance(_ context.Context, obj *v1alpha1.ConvexInstance) error {
+func (s *stubStore) UpdateConvexInstance(_ context.Context, _ *v1alpha1.ConvexInstance) error {
 	return nil
 }
 
@@ -52,11 +52,11 @@ type stubS3Provisioner struct {
 	cleanupCnt int
 }
 
-func (p *stubS3Provisioner) Provision(_ context.Context, instanceName, namespace string) (S3Result, error) {
+func (p *stubS3Provisioner) Provision(_ context.Context, _, _ string) (S3Result, error) {
 	return p.res, p.err
 }
 
-func (p *stubS3Provisioner) Cleanup(_ context.Context, instanceName, namespace string) {
+func (p *stubS3Provisioner) Cleanup(_ context.Context, _, _ string) {
 	p.cleanupCnt++
 }
 
@@ -66,11 +66,11 @@ type stubDBProvisioner struct {
 	cleanupCnt int
 }
 
-func (p *stubDBProvisioner) Provision(_ context.Context, instanceName, namespace string) (DBResult, error) {
+func (p *stubDBProvisioner) Provision(_ context.Context, _, _ string) (DBResult, error) {
 	return p.res, p.err
 }
 
-func (p *stubDBProvisioner) Cleanup(_ context.Context, instanceName, namespace string) {
+func (p *stubDBProvisioner) Cleanup(_ context.Context, _, _ string) {
 	p.cleanupCnt++
 }
 
