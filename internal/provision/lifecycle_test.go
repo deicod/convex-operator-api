@@ -18,15 +18,15 @@ type stubStore struct {
 	deleted   []string
 }
 
-func (s *stubStore) ListConvexInstances(_ context.Context, namespace string) ([]v1alpha1.ConvexInstance, error) {
+func (s *stubStore) ListConvexInstances(ctx context.Context, namespace string) ([]v1alpha1.ConvexInstance, error) {
 	return nil, nil
 }
 
-func (s *stubStore) GetConvexInstance(_ context.Context, namespace, name string) (*v1alpha1.ConvexInstance, error) {
+func (s *stubStore) GetConvexInstance(ctx context.Context, namespace, name string) (*v1alpha1.ConvexInstance, error) {
 	return nil, nil
 }
 
-func (s *stubStore) CreateConvexInstance(_ context.Context, obj *v1alpha1.ConvexInstance) error {
+func (s *stubStore) CreateConvexInstance(ctx context.Context, obj *v1alpha1.ConvexInstance) error {
 	if s.createErr != nil {
 		return s.createErr
 	}
@@ -34,11 +34,11 @@ func (s *stubStore) CreateConvexInstance(_ context.Context, obj *v1alpha1.Convex
 	return nil
 }
 
-func (s *stubStore) UpdateConvexInstance(_ context.Context, obj *v1alpha1.ConvexInstance) error {
+func (s *stubStore) UpdateConvexInstance(ctx context.Context, obj *v1alpha1.ConvexInstance) error {
 	return nil
 }
 
-func (s *stubStore) DeleteConvexInstance(_ context.Context, namespace, name string) error {
+func (s *stubStore) DeleteConvexInstance(ctx context.Context, namespace, name string) error {
 	if s.deleteErr != nil {
 		return s.deleteErr
 	}
@@ -52,11 +52,11 @@ type stubS3Provisioner struct {
 	cleanupCnt int
 }
 
-func (p *stubS3Provisioner) Provision(_ context.Context, instanceName, namespace string) (S3Result, error) {
+func (p *stubS3Provisioner) Provision(ctx context.Context, instanceName, namespace string) (S3Result, error) {
 	return p.res, p.err
 }
 
-func (p *stubS3Provisioner) Cleanup(_ context.Context, instanceName, namespace string) {
+func (p *stubS3Provisioner) Cleanup(ctx context.Context, instanceName, namespace string) {
 	p.cleanupCnt++
 }
 
@@ -66,11 +66,11 @@ type stubDBProvisioner struct {
 	cleanupCnt int
 }
 
-func (p *stubDBProvisioner) Provision(_ context.Context, instanceName, namespace string) (DBResult, error) {
+func (p *stubDBProvisioner) Provision(ctx context.Context, instanceName, namespace string) (DBResult, error) {
 	return p.res, p.err
 }
 
-func (p *stubDBProvisioner) Cleanup(_ context.Context, instanceName, namespace string) {
+func (p *stubDBProvisioner) Cleanup(ctx context.Context, instanceName, namespace string) {
 	p.cleanupCnt++
 }
 
