@@ -112,6 +112,17 @@ func (p CNPGProvisioner) Provision(ctx context.Context, instanceName, namespace 
 	return DBResult{SecretName: canonicalSecretName}, nil
 }
 
+// Cleanup launches best-effort cleanup (drop DB/user) and deletes the canonical secret.
+func (p CNPGProvisioner) Cleanup(ctx context.Context, instanceName, namespace string) {
+	secretName := renderNameTemplate(p.Config.DBSecretNameTemplate, instanceName)
+	_ = p.deleteSecret(ctx, namespace, secretName)
+
+	user := sanitizeDBIdentifier(instanceName)
+	jobName := fmt.Sprintf("convex-%s-db-drop", user)
+	dropJob := buildCNPGDropJob(jobName, p.Config, user)
+	_ = p.Client.Create(context.Background(), dropJob) // best-effort fire-and-forget
+}
+
 func (p CNPGProvisioner) writeDBSecret(ctx context.Context, name, namespace, user, password, dbName string) error {
 	host := p.Config.Host
 	port := p.Config.Port
@@ -160,6 +171,15 @@ func (p CNPGProvisioner) readExistingPassword(ctx context.Context, secretName, n
 	}
 	pw := secret.Data[dbSecretKeyPassword]
 	return string(pw)
+}
+
+func (p CNPGProvisioner) deleteSecret(ctx context.Context, namespace, name string) error {
+	return client.IgnoreNotFound(p.Client.Delete(ctx, &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}))
 }
 
 func (p CNPGProvisioner) waitForJobCompletion(ctx context.Context, key types.NamespacedName) error {
@@ -237,6 +257,64 @@ $body$;`, quoteLiteral(user), quotedUser, quotedPassword, quotedUser, quotedPass
 					Containers: []corev1.Container{
 						{
 							Name:  "init-db",
+							Image: cfg.JobImage,
+							Command: []string{
+								"sh", "-c",
+								fmt.Sprintf("psql \"host=%s port=%d user=$ADMIN_USER password=$ADMIN_PASSWORD sslmode=%s dbname=postgres\" -v ON_ERROR_STOP=1 <<'SQL'\n%s\nSQL\n", cfg.Host, cfg.Port, cfg.SSLMode, sql),
+							},
+							Env: []corev1.EnvVar{
+								{
+									Name: "ADMIN_USER",
+									ValueFrom: &corev1.EnvVarSource{
+										SecretKeyRef: &corev1.SecretKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{Name: cfg.AdminSecret},
+											Key:                  "username",
+										},
+									},
+								},
+								{
+									Name: "ADMIN_PASSWORD",
+									ValueFrom: &corev1.EnvVarSource{
+										SecretKeyRef: &corev1.SecretKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{Name: cfg.AdminSecret},
+											Key:                  "password",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func buildCNPGDropJob(name string, cfg config.CNPGConfig, user string) *batchv1.Job {
+	backoff := int32(0)
+	ttl := int32(300)
+	sql := fmt.Sprintf(`DO $body$
+BEGIN
+	PERFORM pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = %s;
+	EXECUTE format('DROP DATABASE IF EXISTS %%I', %s);
+	EXECUTE format('DROP ROLE IF EXISTS %%I', %s);
+END
+$body$;`, quoteLiteral(user), quoteLiteral(user), quoteLiteral(user))
+
+	return &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: cfg.JobNamespace,
+		},
+		Spec: batchv1.JobSpec{
+			BackoffLimit:            &backoff,
+			TTLSecondsAfterFinished: &ttl,
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					RestartPolicy: corev1.RestartPolicyNever,
+					Containers: []corev1.Container{
+						{
+							Name:  "drop-db",
 							Image: cfg.JobImage,
 							Command: []string{
 								"sh", "-c",
