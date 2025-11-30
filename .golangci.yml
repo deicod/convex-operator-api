@@ -1,12 +1,16 @@
+version: "2"
+
 run:
   timeout: 5m
 
 linters:
   enable:
+    - govet
     - revive
     - misspell
     - nilerr
     - unconvert
+    - staticcheck
 
 issues:
   max-same-issues: 0
